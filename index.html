@@ -1,0 +1,1038 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema de Gerenciamento de Convidados</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#5D5CDE',
+                        'primary-dark': '#4A49B8'
+                    }
+                }
+            },
+            darkMode: 'class'
+        }
+    </script>
+    <style>
+        .fade-in {
+            animation: fadeIn 0.3s ease-in-out;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .table-row:hover {
+            background-color: rgba(93, 92, 222, 0.05);
+        }
+        
+        .dark .table-row:hover {
+            background-color: rgba(93, 92, 222, 0.1);
+        }
+    </style>
+</head>
+<body class="bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 min-h-screen">
+    <!-- Header -->
+    <header class="bg-primary text-white p-4 shadow-lg">
+        <div class="container mx-auto">
+            <h1 class="text-xl font-bold">Sistema de Gerenciamento de Convidados</h1>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="container mx-auto p-4 pb-20">
+        <!-- Página de Busca -->
+        <div id="busca-page" class="page-content">
+            <div class="fade-in">
+                <h2 class="text-2xl font-bold mb-6 text-center">Lista de Convidados</h2>
+                
+                <!-- Campo de busca centralizado -->
+                <div class="max-w-md mx-auto mb-8">
+                    <div class="relative">
+                        <input 
+                            type="text" 
+                            id="search-input" 
+                            placeholder="Digite o nome do representante..."
+                            class="w-full px-4 py-3 text-base border-2 border-gray-300 dark:border-gray-600 rounded-lg focus:border-primary focus:outline-none bg-white dark:bg-gray-800"
+                        >
+                        <button 
+                            onclick="buscarConvidados()"
+                            class="absolute right-3 top-3 text-gray-400 hover:text-primary"
+                        >
+                            🔍
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Resultados da busca -->
+                <div id="search-results" class="bg-white dark:bg-gray-800 rounded-lg shadow-lg overflow-hidden">
+                    <div class="p-6 text-center text-gray-500 dark:text-gray-400">
+                        Digite um nome para buscar convidados
+                    </div>
+                </div>
+
+                <!-- Selecionados -->
+                <div id="selected-section" class="mt-6 hidden">
+                    <h3 class="text-lg font-semibold mb-4">Convidados Selecionados</h3>
+                    <div id="selected-list" class="bg-gray-50 dark:bg-gray-800 p-4 rounded-lg"></div>
+                    <button 
+                        onclick="enviarParaRelatorio()"
+                        class="mt-4 w-full bg-primary hover:bg-primary-dark text-white py-3 px-6 rounded-lg font-semibold transition-colors"
+                    >
+                        Confirmar Convidados
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Página de Gerenciamento -->
+        <div id="gerenciamento-page" class="page-content hidden">
+            <div class="fade-in">
+                <h2 class="text-2xl font-bold mb-6">Gerenciamento de Convidados</h2>
+                
+                <!-- Estatísticas -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                    <div class="bg-blue-100 dark:bg-blue-900 p-4 rounded-lg">
+                        <h3 class="font-semibold text-blue-800 dark:text-blue-200">Total de Convidados</h3>
+                        <p id="total-pedidos" class="text-2xl font-bold text-blue-600 dark:text-blue-300">0</p>
+                    </div>
+                    <div class="bg-green-100 dark:bg-green-900 p-4 rounded-lg">
+                        <h3 class="font-semibold text-green-800 dark:text-green-200">Confirmados</h3>
+                        <p id="total-confirmados" class="text-2xl font-bold text-green-600 dark:text-green-300">0</p>
+                    </div>
+                    <div class="bg-yellow-100 dark:bg-yellow-900 p-4 rounded-lg">
+                        <h3 class="font-semibold text-yellow-800 dark:text-yellow-200">Pendentes</h3>
+                        <p id="total-pendentes" class="text-2xl font-bold text-yellow-600 dark:text-yellow-300">0</p>
+                    </div>
+                </div>
+
+                <!-- Filtro de busca -->
+                <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-lg mb-6">
+                    <h3 class="text-lg font-semibold mb-4">Filtrar Convidados</h3>
+                    <div class="relative">
+                        <input 
+                            type="text" 
+                            id="filtro-gerenciamento" 
+                            placeholder="Buscar por representante ou convidado..."
+                            onkeyup="filtrarConvidados()"
+                            class="w-full px-4 py-3 text-base border-2 border-gray-300 dark:border-gray-600 rounded-lg focus:border-primary focus:outline-none bg-white dark:bg-gray-800"
+                        >
+                        <button 
+                            onclick="filtrarConvidados()"
+                            class="absolute right-3 top-3 text-gray-400 hover:text-primary"
+                        >
+                            🔍
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Formulário de adição e importação -->
+                <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-lg mb-6">
+                    <h3 class="text-lg font-semibold mb-4">Adicionar Convidados</h3>
+                    
+                    <!-- Adicionar individual -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                        <input 
+                            type="text" 
+                            id="novo-representante" 
+                            placeholder="Nome do Representante"
+                            class="px-4 py-2 text-base border border-gray-300 dark:border-gray-600 rounded-lg focus:border-primary focus:outline-none bg-white dark:bg-gray-700"
+                        >
+                        <input 
+                            type="text" 
+                            id="novo-convidado" 
+                            placeholder="Nome do Convidado"
+                            class="px-4 py-2 text-base border border-gray-300 dark:border-gray-600 rounded-lg focus:border-primary focus:outline-none bg-white dark:bg-gray-700"
+                        >
+                    </div>
+                    <button 
+                        onclick="adicionarPedido()"
+                        class="bg-primary hover:bg-primary-dark text-white py-2 px-6 rounded-lg font-semibold transition-colors mb-4"
+                    >
+                        Adicionar Convidado
+                    </button>
+                    
+                    <!-- Importar lista -->
+                    <div class="border-t border-gray-200 dark:border-gray-700 pt-4">
+                        <h4 class="text-md font-semibold mb-3">Importar Lista de Convidados</h4>
+                        <p class="text-sm text-gray-600 dark:text-gray-400 mb-3">
+                            Formato: uma linha por convidado, separado por vírgula (Representante, Convidado)
+                        </p>
+                        <textarea 
+                            id="lista-importar" 
+                            placeholder="Exemplo:&#10;João Silva, Maria Santos&#10;Ana Costa, Pedro Oliveira&#10;Carlos Pereira, Sofia Rodrigues"
+                            rows="4"
+                            class="w-full px-4 py-2 text-base border border-gray-300 dark:border-gray-600 rounded-lg focus:border-primary focus:outline-none bg-white dark:bg-gray-700 mb-3"
+                        ></textarea>
+                        <button 
+                            onclick="importarLista()"
+                            class="bg-green-500 hover:bg-green-600 text-white py-2 px-6 rounded-lg font-semibold transition-colors"
+                        >
+                            Importar Lista
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Tabela de convidados -->
+                <div class="bg-white dark:bg-gray-800 rounded-lg shadow-lg overflow-hidden">
+                    <div class="overflow-x-auto">
+                        <table class="w-full">
+                            <thead class="bg-gray-50 dark:bg-gray-700">
+                                <tr>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">ID</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Representante</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Convidado</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Status</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Ações</th>
+                                </tr>
+                            </thead>
+                            <tbody id="pedidos-table" class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+                                <!-- Dados serão inseridos aqui -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Página de Relatório -->
+        <div id="relatorio-page" class="page-content hidden">
+            <div class="fade-in">
+                <h2 class="text-2xl font-bold mb-6">Relatório de Confirmações</h2>
+                
+                <!-- Filtros e Configurações -->
+                <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-lg mb-6">
+                    <h3 class="text-lg font-semibold mb-4">Filtros e Configurações</h3>
+                    
+                    <!-- Filtro de busca por texto -->
+                    <div class="mb-4">
+                        <div class="relative">
+                            <input 
+                                type="text" 
+                                id="filtro-relatorio-busca" 
+                                placeholder="Buscar por representante ou convidado..."
+                                onkeyup="aplicarFiltros()"
+                                class="w-full px-4 py-3 text-base border-2 border-gray-300 dark:border-gray-600 rounded-lg focus:border-primary focus:outline-none bg-white dark:bg-gray-800"
+                            >
+                            <button 
+                                onclick="aplicarFiltros()"
+                                class="absolute right-3 top-3 text-gray-400 hover:text-primary"
+                            >
+                                🔍
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                        <select 
+                            id="filtro-representante"
+                            onchange="aplicarFiltros()"
+                            class="px-4 py-2 text-base border border-gray-300 dark:border-gray-600 rounded-lg focus:border-primary focus:outline-none bg-white dark:bg-gray-700"
+                        >
+                            <option value="">Todos os Representantes</option>
+                        </select>
+                        <select 
+                            id="filtro-status"
+                            onchange="aplicarFiltros()"
+                            class="px-4 py-2 text-base border border-gray-300 dark:border-gray-600 rounded-lg focus:border-primary focus:outline-none bg-white dark:bg-gray-700"
+                        >
+                            <option value="">Todos os Status</option>
+                            <option value="Confirmado">Confirmado</option>
+                            <option value="Pendente">Pendente</option>
+                        </select>
+                        <button 
+                            onclick="exportarDados()"
+                            class="bg-green-500 hover:bg-green-600 text-white py-2 px-6 rounded-lg font-semibold transition-colors"
+                        >
+                            Exportar Tabela
+                        </button>
+                    </div>
+                    
+                    <!-- Campo para alterar senha -->
+                    <div class="border-t border-gray-200 dark:border-gray-700 pt-4">
+                        <h4 class="text-md font-semibold mb-3">Alterar Senha de Acesso</h4>
+                        <div class="flex gap-3">
+                            <input 
+                                type="password" 
+                                id="nova-senha" 
+                                placeholder="Nova senha"
+                                class="flex-1 px-4 py-2 text-base border border-gray-300 dark:border-gray-600 rounded-lg focus:border-primary focus:outline-none bg-white dark:bg-gray-700"
+                            >
+                            <button 
+                                onclick="alterarSenha()"
+                                class="bg-primary hover:bg-primary-dark text-white py-2 px-6 rounded-lg font-semibold transition-colors"
+                            >
+                                Alterar
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Estatísticas por representante -->
+                <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-lg mb-6">
+                    <h3 class="text-lg font-semibold mb-4">Estatísticas por Representante</h3>
+                    <div id="stats-representantes" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        <!-- Estatísticas serão inseridas aqui -->
+                    </div>
+                </div>
+
+                <!-- Lista de confirmações -->
+                <div class="bg-white dark:bg-gray-800 rounded-lg shadow-lg overflow-hidden">
+                    <h3 class="text-lg font-semibold p-6 border-b border-gray-200 dark:border-gray-700">Confirmações</h3>
+                    <div class="overflow-x-auto">
+                        <table class="w-full">
+                            <thead class="bg-gray-50 dark:bg-gray-700">
+                                <tr>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Representante</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Convidado</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Status</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Data</th>
+                                </tr>
+                            </thead>
+                            <tbody id="relatorio-table" class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+                                <!-- Dados serão inseridos aqui -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Menu inferior de navegação -->
+    <nav class="fixed bottom-0 left-0 right-0 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 shadow-lg">
+        <div class="flex justify-around py-2">
+            <button 
+                onclick="mostrarPagina('busca')" 
+                id="nav-busca"
+                class="nav-btn flex flex-col items-center py-2 px-4 text-primary font-semibold"
+            >
+                <span class="text-lg">🔍</span>
+                <span class="text-xs">Busca</span>
+            </button>
+            <button 
+                onclick="mostrarPagina('gerenciamento')" 
+                id="nav-gerenciamento"
+                class="nav-btn flex flex-col items-center py-2 px-4 text-gray-500 hover:text-primary transition-colors"
+            >
+                <span class="text-lg">⚙️</span>
+                <span class="text-xs">Gerenciar</span>
+            </button>
+            <button 
+                onclick="mostrarPagina('relatorio')" 
+                id="nav-relatorio"
+                class="nav-btn flex flex-col items-center py-2 px-4 text-gray-500 hover:text-primary transition-colors"
+            >
+                <span class="text-lg">📊</span>
+                <span class="text-xs">Relatório</span>
+            </button>
+        </div>
+    </nav>
+
+    <script>
+        // Configuração do modo escuro
+        if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+            document.documentElement.classList.add('dark');
+        }
+        window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', event => {
+            if (event.matches) {
+                document.documentElement.classList.add('dark');
+            } else {
+                document.documentElement.classList.remove('dark');
+            }
+        });
+
+        // Dados globais
+        let pedidos = [
+            { id: 1, representante: 'João Silva', convidado: 'Maria Santos', status: 'Confirmado', data: '2024-01-15' },
+            { id: 2, representante: 'Ana Costa', convidado: 'Pedro Oliveira', status: 'Pendente', data: '2024-01-16' },
+            { id: 3, representante: 'João Silva', convidado: 'Lucas Lima', status: 'Confirmado', data: '2024-01-17' },
+            { id: 4, representante: 'Carlos Pereira', convidado: 'Sofia Rodrigues', status: 'Confirmado', data: '2024-01-18' }
+        ];
+        
+        let proximoId = 5;
+        let convidadosSelecionados = [];
+        let paginaAtual = 'busca';
+        let senhaAtual = '1234';
+
+        // Navegação entre páginas
+        function mostrarPagina(pagina) {
+            // Verificar senha para páginas protegidas
+            if ((pagina === 'gerenciamento' || pagina === 'relatorio') && paginaAtual === 'busca') {
+                showPasswordDialog(pagina);
+                return;
+            }
+            
+            // Esconder todas as páginas
+            document.querySelectorAll('.page-content').forEach(page => {
+                page.classList.add('hidden');
+            });
+            
+            // Mostrar página selecionada
+            document.getElementById(pagina + '-page').classList.remove('hidden');
+            
+            // Atualizar navegação
+            document.querySelectorAll('.nav-btn').forEach(btn => {
+                btn.classList.remove('text-primary', 'font-semibold');
+                btn.classList.add('text-gray-500');
+            });
+            
+            document.getElementById('nav-' + pagina).classList.add('text-primary', 'font-semibold');
+            document.getElementById('nav-' + pagina).classList.remove('text-gray-500');
+            
+            paginaAtual = pagina;
+            
+            // Atualizar dados da página
+            if (pagina === 'gerenciamento') {
+                atualizarTabelaPedidos();
+                atualizarEstatisticas();
+            } else if (pagina === 'relatorio') {
+                atualizarRelatorio();
+            }
+        }
+
+        // Função de busca
+        function buscarConvidados() {
+            const termo = document.getElementById('search-input').value.toLowerCase();
+            const resultados = document.getElementById('search-results');
+            
+            if (!termo.trim()) {
+                resultados.innerHTML = '<div class="p-6 text-center text-gray-500 dark:text-gray-400">Digite um nome para buscar convidados</div>';
+                return;
+            }
+            
+            const convidadosEncontrados = pedidos.filter(pedido => 
+                pedido.representante.toLowerCase().includes(termo)
+            );
+            
+            if (convidadosEncontrados.length === 0) {
+                resultados.innerHTML = '<div class="p-6 text-center text-gray-500 dark:text-gray-400">Nenhum convidado encontrado</div>';
+                return;
+            }
+            
+            let html = '<table class="w-full"><thead class="bg-gray-50 dark:bg-gray-700"><tr><th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Convidado</th><th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Representante</th><th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Status</th><th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Selecionar</th></tr></thead><tbody class="divide-y divide-gray-200 dark:divide-gray-700">';
+            
+            convidadosEncontrados.forEach(pedido => {
+                const isSelected = convidadosSelecionados.some(c => c.id === pedido.id);
+                html += `
+                    <tr class="table-row">
+                        <td class="px-6 py-4 whitespace-nowrap">${pedido.convidado}</td>
+                        <td class="px-6 py-4 whitespace-nowrap">${pedido.representante}</td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <span class="px-2 py-1 text-xs font-semibold rounded-full ${pedido.status === 'Confirmado' ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200'}">${pedido.status}</span>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <input type="checkbox" ${isSelected ? 'checked' : ''} onchange="toggleConvidado(${pedido.id})" class="w-4 h-4 text-primary focus:ring-primary border-gray-300 rounded">
+                        </td>
+                    </tr>
+                `;
+            });
+            
+            html += '</tbody></table>';
+            resultados.innerHTML = html;
+        }
+
+        function toggleConvidado(id) {
+            const pedido = pedidos.find(p => p.id === id);
+            const index = convidadosSelecionados.findIndex(c => c.id === id);
+            
+            if (index === -1) {
+                convidadosSelecionados.push(pedido);
+            } else {
+                convidadosSelecionados.splice(index, 1);
+            }
+            
+            atualizarSelecionados();
+        }
+
+        function atualizarSelecionados() {
+            const section = document.getElementById('selected-section');
+            const list = document.getElementById('selected-list');
+            
+            if (convidadosSelecionados.length === 0) {
+                section.classList.add('hidden');
+                return;
+            }
+            
+            section.classList.remove('hidden');
+            let html = '';
+            
+            convidadosSelecionados.forEach(convidado => {
+                html += `
+                    <div class="flex justify-between items-center py-2 px-4 bg-white dark:bg-gray-700 rounded mb-2">
+                        <span>${convidado.convidado} (${convidado.representante})</span>
+                        <button onclick="removerSelecionado(${convidado.id})" class="text-red-500 hover:text-red-700">❌</button>
+                    </div>
+                `;
+            });
+            
+            list.innerHTML = html;
+        }
+
+        function removerSelecionado(id) {
+            const index = convidadosSelecionados.findIndex(c => c.id === id);
+            if (index !== -1) {
+                convidadosSelecionados.splice(index, 1);
+                atualizarSelecionados();
+                buscarConvidados(); // Atualizar a tabela de busca
+            }
+        }
+
+        function enviarParaRelatorio() {
+            if (convidadosSelecionados.length === 0) return;
+            
+            // Marcar como confirmado
+            convidadosSelecionados.forEach(convidado => {
+                const pedido = pedidos.find(p => p.id === convidado.id);
+                if (pedido) {
+                    pedido.status = 'Confirmado';
+                }
+            });
+            
+            convidadosSelecionados = [];
+            atualizarSelecionados();
+            buscarConvidados();
+            
+            // Ir para página de relatório
+            mostrarPagina('relatorio');
+            
+            // Mostrar mensagem de sucesso
+            showCustomAlert('Confirmação de Convidados enviados aos noivos');
+        }
+
+        // Gerenciamento
+        function adicionarPedido() {
+            const representante = document.getElementById('novo-representante').value.trim();
+            const convidado = document.getElementById('novo-convidado').value.trim();
+            
+            if (!representante || !convidado) {
+                showCustomAlert('Por favor, preencha todos os campos');
+                return;
+            }
+            
+            const novoPedido = {
+                id: proximoId++,
+                representante,
+                convidado,
+                status: 'Pendente',
+                data: new Date().toISOString().split('T')[0]
+            };
+            
+            pedidos.push(novoPedido);
+            
+            // Limpar campos
+            document.getElementById('novo-representante').value = '';
+            document.getElementById('novo-convidado').value = '';
+            
+            atualizarTabelaPedidos();
+            atualizarEstatisticas();
+        }
+
+        function atualizarTabelaPedidos() {
+            const tbody = document.getElementById('pedidos-table');
+            let html = '';
+            
+            pedidos.forEach(pedido => {
+                html += `
+                    <tr class="table-row">
+                        <td class="px-6 py-4 whitespace-nowrap text-sm">${pedido.id}</td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <input type="text" value="${pedido.representante}" onchange="editarPedido(${pedido.id}, 'representante', this.value)" class="w-full px-2 py-1 text-base border border-gray-300 dark:border-gray-600 rounded focus:border-primary focus:outline-none bg-white dark:bg-gray-700">
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <input type="text" value="${pedido.convidado}" onchange="editarPedido(${pedido.id}, 'convidado', this.value)" class="w-full px-2 py-1 text-base border border-gray-300 dark:border-gray-600 rounded focus:border-primary focus:outline-none bg-white dark:bg-gray-700">
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <select onchange="editarPedido(${pedido.id}, 'status', this.value)" class="px-2 py-1 text-base border border-gray-300 dark:border-gray-600 rounded focus:border-primary focus:outline-none bg-white dark:bg-gray-700">
+                                <option value="Pendente" ${pedido.status === 'Pendente' ? 'selected' : ''}>Pendente</option>
+                                <option value="Confirmado" ${pedido.status === 'Confirmado' ? 'selected' : ''}>Confirmado</option>
+                            </select>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <button onclick="removerPedido(${pedido.id})" class="text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300">🗑️</button>
+                        </td>
+                    </tr>
+                `;
+            });
+            
+            tbody.innerHTML = html;
+        }
+
+        function editarPedido(id, campo, valor) {
+            const pedido = pedidos.find(p => p.id === id);
+            if (pedido) {
+                pedido[campo] = valor;
+                atualizarEstatisticas();
+            }
+        }
+
+        function removerPedido(id) {
+            showConfirmDialog('Tem certeza que deseja excluir o convidado?', () => {
+                const index = pedidos.findIndex(p => p.id === id);
+                if (index !== -1) {
+                    pedidos.splice(index, 1);
+                    atualizarTabelaPedidos();
+                    atualizarEstatisticas();
+                }
+            });
+        }
+
+        function atualizarEstatisticas() {
+            const total = pedidos.length;
+            const confirmados = pedidos.filter(p => p.status === 'Confirmado').length;
+            const pendentes = pedidos.filter(p => p.status === 'Pendente').length;
+            
+            document.getElementById('total-pedidos').textContent = total;
+            document.getElementById('total-confirmados').textContent = confirmados;
+            document.getElementById('total-pendentes').textContent = pendentes;
+        }
+
+        // Relatório
+        function atualizarRelatorio() {
+            atualizarFiltroRepresentantes();
+            aplicarFiltros();
+            atualizarEstatisticasRepresentantes();
+        }
+
+        function atualizarFiltroRepresentantes() {
+            const select = document.getElementById('filtro-representante');
+            const representantes = [...new Set(pedidos.map(p => p.representante))];
+            
+            let html = '<option value="">Todos os Representantes</option>';
+            representantes.forEach(rep => {
+                html += `<option value="${rep}">${rep}</option>`;
+            });
+            
+            select.innerHTML = html;
+        }
+
+        function aplicarFiltros() {
+            const filtroRep = document.getElementById('filtro-representante').value;
+            const filtroStatus = document.getElementById('filtro-status').value;
+            const filtroBusca = document.getElementById('filtro-relatorio-busca').value.toLowerCase();
+            
+            let pedidosFiltrados = pedidos;
+            
+            if (filtroRep) {
+                pedidosFiltrados = pedidosFiltrados.filter(p => p.representante === filtroRep);
+            }
+            
+            if (filtroStatus) {
+                pedidosFiltrados = pedidosFiltrados.filter(p => p.status === filtroStatus);
+            }
+            
+            if (filtroBusca.trim()) {
+                pedidosFiltrados = pedidosFiltrados.filter(p => 
+                    p.representante.toLowerCase().includes(filtroBusca) ||
+                    p.convidado.toLowerCase().includes(filtroBusca)
+                );
+            }
+            
+            const tbody = document.getElementById('relatorio-table');
+            let html = '';
+            
+            pedidosFiltrados.forEach(pedido => {
+                html += `
+                    <tr class="table-row">
+                        <td class="px-6 py-4 whitespace-nowrap">${pedido.representante}</td>
+                        <td class="px-6 py-4 whitespace-nowrap">${pedido.convidado}</td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <span class="px-2 py-1 text-xs font-semibold rounded-full ${pedido.status === 'Confirmado' ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200'}">${pedido.status}</span>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">${pedido.data}</td>
+                    </tr>
+                `;
+            });
+            
+            tbody.innerHTML = html;
+        }
+
+        // Funções para filtrar e importar lista
+        function filtrarConvidados() {
+            const termo = document.getElementById('filtro-gerenciamento').value.toLowerCase();
+            
+            if (!termo.trim()) {
+                atualizarTabelaPedidos();
+                return;
+            }
+            
+            const convidadosFiltrados = pedidos.filter(pedido => 
+                pedido.representante.toLowerCase().includes(termo) ||
+                pedido.convidado.toLowerCase().includes(termo)
+            );
+            
+            const tbody = document.getElementById('pedidos-table');
+            let html = '';
+            
+            convidadosFiltrados.forEach(pedido => {
+                html += `
+                    <tr class="table-row">
+                        <td class="px-6 py-4 whitespace-nowrap text-sm">${pedido.id}</td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <input type="text" value="${pedido.representante}" onchange="editarPedido(${pedido.id}, 'representante', this.value)" class="w-full px-2 py-1 text-base border border-gray-300 dark:border-gray-600 rounded focus:border-primary focus:outline-none bg-white dark:bg-gray-700">
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <input type="text" value="${pedido.convidado}" onchange="editarPedido(${pedido.id}, 'convidado', this.value)" class="w-full px-2 py-1 text-base border border-gray-300 dark:border-gray-600 rounded focus:border-primary focus:outline-none bg-white dark:bg-gray-700">
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <select onchange="editarPedido(${pedido.id}, 'status', this.value)" class="px-2 py-1 text-base border border-gray-300 dark:border-gray-600 rounded focus:border-primary focus:outline-none bg-white dark:bg-gray-700">
+                                <option value="Pendente" ${pedido.status === 'Pendente' ? 'selected' : ''}>Pendente</option>
+                                <option value="Confirmado" ${pedido.status === 'Confirmado' ? 'selected' : ''}>Confirmado</option>
+                            </select>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <button onclick="removerPedido(${pedido.id})" class="text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300">🗑️</button>
+                        </td>
+                    </tr>
+                `;
+            });
+            
+            tbody.innerHTML = html;
+        }
+
+        function importarLista() {
+            const texto = document.getElementById('lista-importar').value.trim();
+            
+            if (!texto) {
+                showCustomAlert('Por favor, digite a lista de convidados');
+                return;
+            }
+            
+            const linhas = texto.split('\n').filter(linha => linha.trim());
+            let adicionados = 0;
+            let erros = 0;
+            
+            linhas.forEach(linha => {
+                const partes = linha.split(',').map(parte => parte.trim());
+                
+                if (partes.length === 2 && partes[0] && partes[1]) {
+                    const novoPedido = {
+                        id: proximoId++,
+                        representante: partes[0],
+                        convidado: partes[1],
+                        status: 'Pendente',
+                        data: new Date().toISOString().split('T')[0]
+                    };
+                    
+                    pedidos.push(novoPedido);
+                    adicionados++;
+                } else {
+                    erros++;
+                }
+            });
+            
+            // Limpar campo
+            document.getElementById('lista-importar').value = '';
+            
+            // Atualizar tabela e estatísticas
+            atualizarTabelaPedidos();
+            atualizarEstatisticas();
+            
+            // Mostrar resultado
+            if (erros === 0) {
+                showCustomAlert(`${adicionados} convidados importados com sucesso!`);
+            } else {
+                showCustomAlert(`${adicionados} convidados importados com sucesso! ${erros} linhas com erro foram ignoradas.`);
+            }
+        }
+
+        function atualizarEstatisticasRepresentantes() {
+            const container = document.getElementById('stats-representantes');
+            const representantes = [...new Set(pedidos.map(p => p.representante))];
+            
+            let html = '';
+            representantes.forEach(rep => {
+                const pedidosRep = pedidos.filter(p => p.representante === rep);
+                const confirmados = pedidosRep.filter(p => p.status === 'Confirmado').length;
+                const total = pedidosRep.length;
+                const percentual = total > 0 ? Math.round((confirmados / total) * 100) : 0;
+                
+                html += `
+                    <div class="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
+                        <h4 class="font-semibold mb-2">${rep}</h4>
+                        <p class="text-sm text-gray-600 dark:text-gray-400">Total: ${total}</p>
+                        <p class="text-sm text-gray-600 dark:text-gray-400">Confirmados: ${confirmados}</p>
+                        <p class="text-sm font-semibold text-primary">${percentual}% de confirmação</p>
+                    </div>
+                `;
+            });
+            
+            container.innerHTML = html;
+        }
+
+        function exportarDados() {
+            // Aplicar filtros atuais para exportar apenas dados filtrados
+            const filtroRep = document.getElementById('filtro-representante').value;
+            const filtroStatus = document.getElementById('filtro-status').value;
+            
+            let pedidosFiltrados = pedidos;
+            
+            if (filtroRep) {
+                pedidosFiltrados = pedidosFiltrados.filter(p => p.representante === filtroRep);
+            }
+            
+            if (filtroStatus) {
+                pedidosFiltrados = pedidosFiltrados.filter(p => p.status === filtroStatus);
+            }
+            
+            // Gerar estatísticas
+            const total = pedidosFiltrados.length;
+            const confirmados = pedidosFiltrados.filter(p => p.status === 'Confirmado').length;
+            const pendentes = pedidosFiltrados.filter(p => p.status === 'Pendente').length;
+            
+            // Estatísticas por representante
+            const representantes = [...new Set(pedidosFiltrados.map(p => p.representante))];
+            let statsHtml = '';
+            
+            representantes.forEach(rep => {
+                const pedidosRep = pedidosFiltrados.filter(p => p.representante === rep);
+                const confirmadosRep = pedidosRep.filter(p => p.status === 'Confirmado').length;
+                const totalRep = pedidosRep.length;
+                const percentual = totalRep > 0 ? Math.round((confirmadosRep / totalRep) * 100) : 0;
+                
+                statsHtml += `
+                    <tr>
+                        <td style="padding: 12px; border: 1px solid #ddd; background-color: #f8f9fa;">${rep}</td>
+                        <td style="padding: 12px; border: 1px solid #ddd; text-align: center;">${totalRep}</td>
+                        <td style="padding: 12px; border: 1px solid #ddd; text-align: center; color: #10b981;">${confirmadosRep}</td>
+                        <td style="padding: 12px; border: 1px solid #ddd; text-align: center; color: #f59e0b;">${totalRep - confirmadosRep}</td>
+                        <td style="padding: 12px; border: 1px solid #ddd; text-align: center; font-weight: bold; color: #5d5cde;">${percentual}%</td>
+                    </tr>
+                `;
+            });
+            
+            // Informações dos filtros
+            const filtroRepTexto = filtroRep || 'Todos os representantes';
+            const filtroStatusTexto = filtroStatus || 'Todos os status';
+            const dataAtual = new Date().toLocaleString('pt-BR');
+            
+            // Gerar HTML da tabela
+            const htmlContent = '<!DOCTYPE html>' +
+'<html lang="pt-BR">' +
+'<head>' +
+'    <meta charset="UTF-8">' +
+'    <meta name="viewport" content="width=device-width, initial-scale=1.0">' +
+'    <title>Relatório de Convidados</title>' +
+'    <style>' +
+'        body { font-family: Arial, sans-serif; margin: 20px; background-color: #f5f5f5; }' +
+'        .header { text-align: center; margin-bottom: 30px; padding: 20px; background-color: #5d5cde; color: white; border-radius: 8px; }' +
+'        .stats-container { display: flex; justify-content: space-around; margin-bottom: 30px; gap: 20px; }' +
+'        .stat-card { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); text-align: center; flex: 1; }' +
+'        .stat-number { font-size: 2em; font-weight: bold; margin: 10px 0; }' +
+'        .stat-label { color: #666; font-size: 0.9em; }' +
+'        .table-container { background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-bottom: 30px; }' +
+'        table { width: 100%; border-collapse: collapse; }' +
+'        th { background-color: #5d5cde; color: white; padding: 15px; text-align: left; font-weight: bold; }' +
+'        td { padding: 12px; border: 1px solid #ddd; }' +
+'        tr:nth-child(even) { background-color: #f8f9fa; }' +
+'        tr:hover { background-color: #e3f2fd; }' +
+'        .status-confirmado { background-color: #10b981; color: white; padding: 4px 8px; border-radius: 4px; font-size: 0.8em; font-weight: bold; }' +
+'        .status-pendente { background-color: #f59e0b; color: white; padding: 4px 8px; border-radius: 4px; font-size: 0.8em; font-weight: bold; }' +
+'        .section-title { color: #333; border-bottom: 2px solid #5d5cde; padding-bottom: 10px; margin: 30px 0 20px 0; }' +
+'        .export-date { text-align: right; color: #666; font-size: 0.9em; margin-bottom: 20px; }' +
+'        @media print { body { margin: 0; } .no-print { display: none; } }' +
+'    </style>' +
+'</head>' +
+'<body>' +
+'    <div class="header">' +
+'        <h1>📊 Relatório de Convidados</h1>' +
+'        <p>Sistema de Gerenciamento de Convidados</p>' +
+'    </div>' +
+'    <div class="export-date">Relatório gerado em: ' + dataAtual + '</div>' +
+'    <div class="stats-container">' +
+'        <div class="stat-card"><div class="stat-number" style="color: #3b82f6;">' + total + '</div><div class="stat-label">Total de Convidados</div></div>' +
+'        <div class="stat-card"><div class="stat-number" style="color: #10b981;">' + confirmados + '</div><div class="stat-label">Confirmados</div></div>' +
+'        <div class="stat-card"><div class="stat-number" style="color: #f59e0b;">' + pendentes + '</div><div class="stat-label">Pendentes</div></div>' +
+'        <div class="stat-card"><div class="stat-number" style="color: #5d5cde;">' + (total > 0 ? Math.round((confirmados / total) * 100) : 0) + '%</div><div class="stat-label">Taxa de Confirmação</div></div>' +
+'    </div>' +
+'    <h2 class="section-title">📈 Estatísticas por Representante</h2>' +
+'    <div class="table-container">' +
+'        <table>' +
+'            <thead>' +
+'                <tr>' +
+'                    <th>Representante</th>' +
+'                    <th style="text-align: center;">Total</th>' +
+'                    <th style="text-align: center;">Confirmados</th>' +
+'                    <th style="text-align: center;">Pendentes</th>' +
+'                    <th style="text-align: center;">Taxa de Confirmação</th>' +
+'                </tr>' +
+'            </thead>' +
+'            <tbody>' + statsHtml + '</tbody>' +
+'        </table>' +
+'    </div>' +
+'    <h2 class="section-title">👥 Lista Completa de Convidados</h2>' +
+'    <div class="table-container">' +
+'        <table>' +
+'            <thead>' +
+'                <tr>' +
+'                    <th>ID</th>' +
+'                    <th>Representante</th>' +
+'                    <th>Convidado</th>' +
+'                    <th style="text-align: center;">Status</th>' +
+'                    <th style="text-align: center;">Data</th>' +
+'                </tr>' +
+'            </thead>' +
+'            <tbody>' +
+                pedidosFiltrados.map(pedido => 
+'                <tr>' +
+'                    <td style="text-align: center; font-weight: bold;">' + pedido.id + '</td>' +
+'                    <td>' + pedido.representante + '</td>' +
+'                    <td>' + pedido.convidado + '</td>' +
+'                    <td style="text-align: center;"><span class="status-' + pedido.status.toLowerCase() + '">' + pedido.status + '</span></td>' +
+'                    <td style="text-align: center;">' + new Date(pedido.data).toLocaleDateString('pt-BR') + '</td>' +
+'                </tr>'
+                ).join('') +
+'            </tbody>' +
+'        </table>' +
+'    </div>' +
+'    <div style="margin-top: 40px; text-align: center; color: #666; font-size: 0.9em;">' +
+'        <p>Relatório gerado pelo Sistema de Gerenciamento de Convidados</p>' +
+'        <p>Total de registros: ' + total + ' | Filtros aplicados: ' + filtroRepTexto + ' | ' + filtroStatusTexto + '</p>' +
+'    </div>' +
+'</body>' +
+'</html>';
+            
+            const blob = new Blob([htmlContent], { type: 'text/html;charset=utf-8' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'relatorio_convidados_' + new Date().toISOString().split('T')[0] + '.html';
+            a.click();
+            URL.revokeObjectURL(url);
+            
+            showCustomAlert('Relatório exportado com sucesso! O arquivo HTML foi baixado e pode ser aberto no navegador para visualizar as tabelas formatadas.');
+        }
+
+        function alterarSenha() {
+            const novaSenha = document.getElementById('nova-senha').value.trim();
+            
+            if (!novaSenha) {
+                showCustomAlert('Por favor, digite uma nova senha');
+                return;
+            }
+            
+            if (novaSenha.length < 3) {
+                showCustomAlert('A senha deve ter pelo menos 3 caracteres');
+                return;
+            }
+            
+            senhaAtual = novaSenha;
+            document.getElementById('nova-senha').value = '';
+            showCustomAlert('Senha alterada com sucesso!');
+        }
+
+        // Funções de UI personalizadas
+        function showCustomAlert(message) {
+            const modal = document.createElement('div');
+            modal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50';
+            
+            // Verificar se é a mensagem de confirmação para voltar à busca
+            const voltarParaBusca = message === 'Confirmação de Convidados enviados aos noivos';
+            
+            modal.innerHTML = `
+                <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-lg max-w-sm w-full mx-4">
+                    <p class="text-gray-700 dark:text-gray-300 mb-4">${message}</p>
+                    <div class="flex justify-end">
+                        <button class="px-4 py-2 bg-primary text-white hover:bg-primary-dark rounded" onclick="this.closest('.fixed').remove(); ${voltarParaBusca ? 'mostrarPagina(\'busca\')' : ''}">OK</button>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(modal);
+        }
+
+        function showConfirmDialog(message, onConfirm) {
+            const modal = document.createElement('div');
+            modal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50';
+            modal.innerHTML = `
+                <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-lg max-w-sm w-full mx-4">
+                    <p class="text-gray-700 dark:text-gray-300 mb-4">${message}</p>
+                    <div class="flex justify-end space-x-3">
+                        <button class="px-4 py-2 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded" onclick="this.closest('.fixed').remove()">Cancelar</button>
+                        <button class="px-4 py-2 bg-red-500 text-white hover:bg-red-600 rounded" onclick="this.closest('.fixed').remove(); (${onConfirm})()">Confirmar</button>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(modal);
+        }
+
+        function showPasswordDialog(paginaDestino) {
+            const modal = document.createElement('div');
+            modal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50';
+            modal.innerHTML = `
+                <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-lg max-w-sm w-full mx-4">
+                    <h3 class="text-lg font-semibold mb-4 text-gray-900 dark:text-gray-100">Acesso Restrito</h3>
+                    <p class="text-gray-700 dark:text-gray-300 mb-4">Digite a senha para acessar esta página:</p>
+                    <input type="password" id="password-input" placeholder="Digite a senha" class="w-full px-4 py-2 text-base border border-gray-300 dark:border-gray-600 rounded-lg focus:border-primary focus:outline-none bg-white dark:bg-gray-700 mb-4">
+                    <div class="flex justify-end space-x-3">
+                        <button class="px-4 py-2 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded" onclick="this.closest('.fixed').remove()">Cancelar</button>
+                        <button class="px-4 py-2 bg-primary text-white hover:bg-primary-dark rounded" onclick="verificarSenha('${paginaDestino}', this.closest('.fixed'))">Acessar</button>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(modal);
+            
+            // Focar no campo de senha
+            const passwordInput = modal.querySelector('#password-input');
+            passwordInput.focus();
+            
+            // Permitir Enter para enviar
+            passwordInput.addEventListener('keyup', function(e) {
+                if (e.key === 'Enter') {
+                    verificarSenha(paginaDestino, modal);
+                }
+            });
+        }
+
+        function verificarSenha(paginaDestino, modal) {
+            const senhaDigitada = modal.querySelector('#password-input').value;
+            
+            if (senhaDigitada === senhaAtual) {
+                modal.remove();
+                // Navegar para a página sem verificação adicional
+                document.querySelectorAll('.page-content').forEach(page => {
+                    page.classList.add('hidden');
+                });
+                
+                document.getElementById(paginaDestino + '-page').classList.remove('hidden');
+                
+                document.querySelectorAll('.nav-btn').forEach(btn => {
+                    btn.classList.remove('text-primary', 'font-semibold');
+                    btn.classList.add('text-gray-500');
+                });
+                
+                document.getElementById('nav-' + paginaDestino).classList.add('text-primary', 'font-semibold');
+                document.getElementById('nav-' + paginaDestino).classList.remove('text-gray-500');
+                
+                paginaAtual = paginaDestino;
+                
+                if (paginaDestino === 'gerenciamento') {
+                    atualizarTabelaPedidos();
+                    atualizarEstatisticas();
+                } else if (paginaDestino === 'relatorio') {
+                    atualizarRelatorio();
+                }
+            } else {
+                showCustomAlert('Senha incorreta!');
+            }
+        }
+
+        // Event listeners
+        document.getElementById('search-input').addEventListener('keyup', function(e) {
+            if (e.key === 'Enter') {
+                buscarConvidados();
+            }
+        });
+
+        // Inicialização
+        document.addEventListener('DOMContentLoaded', function() {
+            atualizarEstatisticas();
+        });
+    </script>
+</body>
+</html>
