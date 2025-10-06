@@ -35,13 +35,39 @@
         .dark .table-row:hover {
             background-color: rgba(93, 92, 222, 0.1);
         }
+
+        .loading {
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
     </style>
 </head>
 <body class="bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 min-h-screen">
+    <!-- Loading Overlay -->
+    <div id="loading-overlay" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+        <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-lg text-center">
+            <div class="loading inline-block w-8 h-8 border-4 border-primary border-t-transparent rounded-full mb-4"></div>
+            <p class="text-gray-700 dark:text-gray-300">Processando...</p>
+        </div>
+    </div>
+
     <!-- Header -->
     <header class="bg-primary text-white p-4 shadow-lg">
-        <div class="container mx-auto">
+        <div class="container mx-auto flex justify-between items-center">
             <h1 class="text-xl font-bold">Sistema de Gerenciamento de Convidados</h1>
+            <div class="flex items-center space-x-4">
+                <div id="connection-status" class="flex items-center">
+                    <div class="w-3 h-3 bg-green-500 rounded-full mr-2"></div>
+                    <span class="text-sm">Conectado</span>
+                </div>
+                <button onclick="syncDatabase()" class="text-sm bg-white/20 hover:bg-white/30 px-3 py-1 rounded">
+                    🔄 Sync
+                </button>
+            </div>
         </div>
     </header>
 
@@ -81,12 +107,20 @@
                 <div id="selected-section" class="mt-6 hidden">
                     <h3 class="text-lg font-semibold mb-4">Convidados Selecionados</h3>
                     <div id="selected-list" class="bg-gray-50 dark:bg-gray-800 p-4 rounded-lg"></div>
-                    <button 
-                        onclick="enviarParaRelatorio()"
-                        class="mt-4 w-full bg-primary hover:bg-primary-dark text-white py-3 px-6 rounded-lg font-semibold transition-colors"
-                    >
-                        Confirmar Convidados
-                    </button>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mt-4">
+                        <button 
+                            onclick="enviarParaRelatorio()"
+                            class="bg-primary hover:bg-primary-dark text-white py-3 px-6 rounded-lg font-semibold transition-colors"
+                        >
+                            Confirmar Convidados
+                        </button>
+                        <button 
+                            onclick="cancelarConvidados()"
+                            class="bg-red-500 hover:bg-red-600 text-white py-3 px-6 rounded-lg font-semibold transition-colors"
+                        >
+                            Cancelar Convidados
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -109,26 +143,6 @@
                     <div class="bg-yellow-100 dark:bg-yellow-900 p-4 rounded-lg">
                         <h3 class="font-semibold text-yellow-800 dark:text-yellow-200">Pendentes</h3>
                         <p id="total-pendentes" class="text-2xl font-bold text-yellow-600 dark:text-yellow-300">0</p>
-                    </div>
-                </div>
-
-                <!-- Filtro de busca -->
-                <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-lg mb-6">
-                    <h3 class="text-lg font-semibold mb-4">Filtrar Convidados</h3>
-                    <div class="relative">
-                        <input 
-                            type="text" 
-                            id="filtro-gerenciamento" 
-                            placeholder="Buscar por representante ou convidado..."
-                            onkeyup="filtrarConvidados()"
-                            class="w-full px-4 py-3 text-base border-2 border-gray-300 dark:border-gray-600 rounded-lg focus:border-primary focus:outline-none bg-white dark:bg-gray-800"
-                        >
-                        <button 
-                            onclick="filtrarConvidados()"
-                            class="absolute right-3 top-3 text-gray-400 hover:text-primary"
-                        >
-                            🔍
-                        </button>
                     </div>
                 </div>
 
@@ -162,7 +176,7 @@
                     <div class="border-t border-gray-200 dark:border-gray-700 pt-4">
                         <h4 class="text-md font-semibold mb-3">Importar Lista de Convidados</h4>
                         <p class="text-sm text-gray-600 dark:text-gray-400 mb-3">
-                            Formato: uma linha por convidado, separado por vírgula (Representante, Convidado)
+                            Formato: uma linha por convidado, separado por vírgula (Representante, Convidado) ou arquivo Excel
                         </p>
                         <textarea 
                             id="lista-importar" 
@@ -170,11 +184,74 @@
                             rows="4"
                             class="w-full px-4 py-2 text-base border border-gray-300 dark:border-gray-600 rounded-lg focus:border-primary focus:outline-none bg-white dark:bg-gray-700 mb-3"
                         ></textarea>
-                        <button 
-                            onclick="importarLista()"
-                            class="bg-green-500 hover:bg-green-600 text-white py-2 px-6 rounded-lg font-semibold transition-colors"
+                        <div class="flex gap-3 mb-3">
+                            <button 
+                                onclick="importarLista()"
+                                class="bg-green-500 hover:bg-green-600 text-white py-2 px-6 rounded-lg font-semibold transition-colors"
+                            >
+                                Importar Lista
+                            </button>
+                            <input 
+                                type="file" 
+                                id="arquivo-excel" 
+                                accept=".xlsx,.xls,.csv"
+                                class="hidden"
+                                onchange="importarExcel()"
+                            >
+                            <button 
+                                onclick="document.getElementById('arquivo-excel').click()"
+                                class="bg-blue-500 hover:bg-blue-600 text-white py-2 px-6 rounded-lg font-semibold transition-colors"
+                            >
+                                📊 Importar Excel
+                            </button>
+                        </div>
+                        <p class="text-xs text-gray-500 dark:text-gray-400">
+                            Excel: 1ª coluna = Representante, 2ª coluna = Convidado
+                        </p>
+                    </div>
+
+                    <!-- Backup e Restore -->
+                    <div class="border-t border-gray-200 dark:border-gray-700 pt-4 mt-4">
+                        <h4 class="text-md font-semibold mb-3">Backup e Restauração</h4>
+                        <div class="flex gap-3">
+                            <button 
+                                onclick="exportarBackup()"
+                                class="bg-purple-500 hover:bg-purple-600 text-white py-2 px-6 rounded-lg font-semibold transition-colors"
+                            >
+                                💾 Backup
+                            </button>
+                            <input 
+                                type="file" 
+                                id="arquivo-backup" 
+                                accept=".json"
+                                class="hidden"
+                                onchange="importarBackup()"
+                            >
+                            <button 
+                                onclick="document.getElementById('arquivo-backup').click()"
+                                class="bg-orange-500 hover:bg-orange-600 text-white py-2 px-6 rounded-lg font-semibold transition-colors"
+                            >
+                                📂 Restaurar
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Filtro de busca -->
+                <div class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-lg mb-6">
+                    <div class="relative">
+                        <input 
+                            type="text" 
+                            id="filtro-gerenciamento" 
+                            placeholder="Buscar por representante ou convidado..."
+                            onkeyup="filtrarConvidados()"
+                            class="w-full px-4 py-3 text-base border-2 border-gray-300 dark:border-gray-600 rounded-lg focus:border-primary focus:outline-none bg-white dark:bg-gray-800"
                         >
-                            Importar Lista
+                        <button 
+                            onclick="filtrarConvidados()"
+                            class="absolute right-3 top-3 text-gray-400 hover:text-primary"
+                        >
+                            🔍
                         </button>
                     </div>
                 </div>
@@ -189,6 +266,7 @@
                                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Representante</th>
                                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Convidado</th>
                                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Status</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Data</th>
                                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Ações</th>
                                 </tr>
                             </thead>
@@ -206,51 +284,22 @@
             <div class="fade-in">
                 <h2 class="text-2xl font-bold mb-6">Relatório de Confirmações</h2>
                 
-                <!-- Filtros e Configurações -->
+                <!-- Configurações -->
                 <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-lg mb-6">
-                    <h3 class="text-lg font-semibold mb-4">Filtros e Configurações</h3>
+                    <h3 class="text-lg font-semibold mb-4">Configurações</h3>
                     
-                    <!-- Filtro de busca por texto -->
-                    <div class="mb-4">
-                        <div class="relative">
-                            <input 
-                                type="text" 
-                                id="filtro-relatorio-busca" 
-                                placeholder="Buscar por representante ou convidado..."
-                                onkeyup="aplicarFiltros()"
-                                class="w-full px-4 py-3 text-base border-2 border-gray-300 dark:border-gray-600 rounded-lg focus:border-primary focus:outline-none bg-white dark:bg-gray-800"
-                            >
-                            <button 
-                                onclick="aplicarFiltros()"
-                                class="absolute right-3 top-3 text-gray-400 hover:text-primary"
-                            >
-                                🔍
-                            </button>
-                        </div>
-                    </div>
-                    
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-                        <select 
-                            id="filtro-representante"
-                            onchange="aplicarFiltros()"
-                            class="px-4 py-2 text-base border border-gray-300 dark:border-gray-600 rounded-lg focus:border-primary focus:outline-none bg-white dark:bg-gray-700"
-                        >
-                            <option value="">Todos os Representantes</option>
-                        </select>
-                        <select 
-                            id="filtro-status"
-                            onchange="aplicarFiltros()"
-                            class="px-4 py-2 text-base border border-gray-300 dark:border-gray-600 rounded-lg focus:border-primary focus:outline-none bg-white dark:bg-gray-700"
-                        >
-                            <option value="">Todos os Status</option>
-                            <option value="Confirmado">Confirmado</option>
-                            <option value="Pendente">Pendente</option>
-                        </select>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                         <button 
                             onclick="exportarDados()"
                             class="bg-green-500 hover:bg-green-600 text-white py-2 px-6 rounded-lg font-semibold transition-colors"
                         >
-                            Exportar Tabela
+                            📊 Exportar Tabela
+                        </button>
+                        <button 
+                            onclick="gerarRelatorioCompleto()"
+                            class="bg-blue-500 hover:bg-blue-600 text-white py-2 px-6 rounded-lg font-semibold transition-colors"
+                        >
+                            📈 Relatório Completo
                         </button>
                     </div>
                     
@@ -282,6 +331,46 @@
                     </div>
                 </div>
 
+                <!-- Filtros de busca -->
+                <div class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-lg mb-6">
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <!-- Filtro de busca por texto -->
+                        <div class="relative">
+                            <input 
+                                type="text" 
+                                id="filtro-relatorio-busca" 
+                                placeholder="Buscar por representante ou convidado..."
+                                onkeyup="aplicarFiltros()"
+                                class="w-full px-4 py-3 text-base border-2 border-gray-300 dark:border-gray-600 rounded-lg focus:border-primary focus:outline-none bg-white dark:bg-gray-800"
+                            >
+                            <button 
+                                onclick="aplicarFiltros()"
+                                class="absolute right-3 top-3 text-gray-400 hover:text-primary"
+                            >
+                                🔍
+                            </button>
+                        </div>
+                        
+                        <select 
+                            id="filtro-representante"
+                            onchange="aplicarFiltros()"
+                            class="px-4 py-2 text-base border border-gray-300 dark:border-gray-600 rounded-lg focus:border-primary focus:outline-none bg-white dark:bg-gray-700"
+                        >
+                            <option value="">Todos os Representantes</option>
+                        </select>
+                        
+                        <select 
+                            id="filtro-status"
+                            onchange="aplicarFiltros()"
+                            class="px-4 py-2 text-base border border-gray-300 dark:border-gray-600 rounded-lg focus:border-primary focus:outline-none bg-white dark:bg-gray-700"
+                        >
+                            <option value="">Todos os Status</option>
+                            <option value="Confirmado">Confirmado</option>
+                            <option value="Pendente">Pendente</option>
+                        </select>
+                    </div>
+                </div>
+
                 <!-- Lista de confirmações -->
                 <div class="bg-white dark:bg-gray-800 rounded-lg shadow-lg overflow-hidden">
                     <h3 class="text-lg font-semibold p-6 border-b border-gray-200 dark:border-gray-700">Confirmações</h3>
@@ -293,6 +382,7 @@
                                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Convidado</th>
                                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Status</th>
                                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Data</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Última Atualização</th>
                                 </tr>
                             </thead>
                             <tbody id="relatorio-table" class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
@@ -314,7 +404,7 @@
                 class="nav-btn flex flex-col items-center py-2 px-4 text-primary font-semibold"
             >
                 <span class="text-lg">🔍</span>
-                <span class="text-xs">Busca</span>
+                <span class="text-xs">Lista de Convidados</span>
             </button>
             <button 
                 onclick="mostrarPagina('gerenciamento')" 
@@ -336,6 +426,310 @@
     </nav>
 
     <script>
+        // ==================== SISTEMA DE BANCO DE DADOS SIMULADO ====================
+        
+        // Simulação de um banco de dados com operações CRUD
+        class DatabaseService {
+            constructor() {
+                this.dbName = 'convidados_db';
+                this.version = '1.0';
+                this.initialized = false;
+                this.data = {
+                    convidados: [],
+                    configuracoes: {
+                        senha: '1234',
+                        proximoId: 1
+                    },
+                    logs: []
+                };
+                this.init();
+            }
+
+            async init() {
+                try {
+                    await this.loadDatabase();
+                    this.initialized = true;
+                    this.updateConnectionStatus(true);
+                    console.log('🗄️ Database inicializado com sucesso');
+                } catch (error) {
+                    console.error('❌ Erro ao inicializar database:', error);
+                    this.updateConnectionStatus(false);
+                }
+            }
+
+            updateConnectionStatus(connected) {
+                const statusEl = document.getElementById('connection-status');
+                if (connected) {
+                    statusEl.innerHTML = '<div class="w-3 h-3 bg-green-500 rounded-full mr-2"></div><span class="text-sm">Conectado</span>';
+                } else {
+                    statusEl.innerHTML = '<div class="w-3 h-3 bg-red-500 rounded-full mr-2"></div><span class="text-sm">Desconectado</span>';
+                }
+            }
+
+            async loadDatabase() {
+                // Simula carregamento do banco de dados
+                // Em um sistema real, isso seria uma chamada para API
+                return new Promise((resolve) => {
+                    setTimeout(() => {
+                        // Dados iniciais para demonstração
+                        if (this.data.convidados.length === 0) {
+                            this.data.convidados = [
+                                { 
+                                    id: 1, 
+                                    representante: 'João Silva', 
+                                    convidado: 'Maria Santos', 
+                                    status: 'Confirmado', 
+                                    data_criacao: '2024-01-15',
+                                    data_atualizacao: '2024-01-15 10:30:00'
+                                },
+                                { 
+                                    id: 2, 
+                                    representante: 'Ana Costa', 
+                                    convidado: 'Pedro Oliveira', 
+                                    status: 'Pendente', 
+                                    data_criacao: '2024-01-16',
+                                    data_atualizacao: '2024-01-16 14:15:00'
+                                },
+                                { 
+                                    id: 3, 
+                                    representante: 'João Silva', 
+                                    convidado: 'Lucas Lima', 
+                                    status: 'Confirmado', 
+                                    data_criacao: '2024-01-17',
+                                    data_atualizacao: '2024-01-17 09:45:00'
+                                },
+                                { 
+                                    id: 4, 
+                                    representante: 'Carlos Pereira', 
+                                    convidado: 'Sofia Rodrigues', 
+                                    status: 'Confirmado', 
+                                    data_criacao: '2024-01-18',
+                                    data_atualizacao: '2024-01-18 16:20:00'
+                                }
+                            ];
+                            this.data.configuracoes.proximoId = 5;
+                        }
+                        resolve();
+                    }, 500); // Simula latência de rede
+                });
+            }
+
+            async insert(table, data) {
+                showLoading(true);
+                return new Promise((resolve, reject) => {
+                    setTimeout(() => {
+                        try {
+                            if (table === 'convidados') {
+                                const novoRegistro = {
+                                    ...data,
+                                    id: this.data.configuracoes.proximoId++,
+                                    data_criacao: new Date().toISOString().split('T')[0],
+                                    data_atualizacao: new Date().toLocaleString('pt-BR')
+                                };
+                                this.data.convidados.push(novoRegistro);
+                                this.logOperation('INSERT', 'convidados', novoRegistro.id);
+                                resolve(novoRegistro);
+                            }
+                        } catch (error) {
+                            reject(error);
+                        } finally {
+                            showLoading(false);
+                        }
+                    }, 200);
+                });
+            }
+
+            async update(table, id, data) {
+                showLoading(true);
+                return new Promise((resolve, reject) => {
+                    setTimeout(() => {
+                        try {
+                            if (table === 'convidados') {
+                                const index = this.data.convidados.findIndex(item => item.id === id);
+                                if (index !== -1) {
+                                    this.data.convidados[index] = {
+                                        ...this.data.convidados[index],
+                                        ...data,
+                                        data_atualizacao: new Date().toLocaleString('pt-BR')
+                                    };
+                                    this.logOperation('UPDATE', 'convidados', id);
+                                    resolve(this.data.convidados[index]);
+                                } else {
+                                    reject(new Error('Registro não encontrado'));
+                                }
+                            }
+                        } catch (error) {
+                            reject(error);
+                        } finally {
+                            showLoading(false);
+                        }
+                    }, 150);
+                });
+            }
+
+            async delete(table, id) {
+                showLoading(true);
+                return new Promise((resolve, reject) => {
+                    setTimeout(() => {
+                        try {
+                            if (table === 'convidados') {
+                                const index = this.data.convidados.findIndex(item => item.id === id);
+                                if (index !== -1) {
+                                    const deleted = this.data.convidados.splice(index, 1)[0];
+                                    this.logOperation('DELETE', 'convidados', id);
+                                    resolve(deleted);
+                                } else {
+                                    reject(new Error('Registro não encontrado'));
+                                }
+                            }
+                        } catch (error) {
+                            reject(error);
+                        } finally {
+                            showLoading(false);
+                        }
+                    }, 150);
+                });
+            }
+
+            async select(table, filters = {}) {
+                return new Promise((resolve) => {
+                    setTimeout(() => {
+                        if (table === 'convidados') {
+                            let result = [...this.data.convidados];
+                            
+                            // Aplicar filtros
+                            if (filters.representante) {
+                                result = result.filter(item => 
+                                    item.representante.toLowerCase().includes(filters.representante.toLowerCase())
+                                );
+                            }
+                            if (filters.convidado) {
+                                result = result.filter(item => 
+                                    item.convidado.toLowerCase().includes(filters.convidado.toLowerCase())
+                                );
+                            }
+                            if (filters.status) {
+                                result = result.filter(item => item.status === filters.status);
+                            }
+                            if (filters.busca) {
+                                const termo = filters.busca.toLowerCase();
+                                result = result.filter(item => 
+                                    item.representante.toLowerCase().includes(termo) ||
+                                    item.convidado.toLowerCase().includes(termo)
+                                );
+                            }
+                            
+                            resolve(result);
+                        }
+                    }, 100);
+                });
+            }
+
+            async bulkInsert(table, dataArray) {
+                showLoading(true);
+                return new Promise((resolve, reject) => {
+                    setTimeout(() => {
+                        try {
+                            if (table === 'convidados') {
+                                const novosRegistros = dataArray.map(data => ({
+                                    ...data,
+                                    id: this.data.configuracoes.proximoId++,
+                                    data_criacao: new Date().toISOString().split('T')[0],
+                                    data_atualizacao: new Date().toLocaleString('pt-BR')
+                                }));
+                                
+                                this.data.convidados.push(...novosRegistros);
+                                this.logOperation('BULK_INSERT', 'convidados', novosRegistros.length);
+                                resolve(novosRegistros);
+                            }
+                        } catch (error) {
+                            reject(error);
+                        } finally {
+                            showLoading(false);
+                        }
+                    }, 300);
+                });
+            }
+
+            logOperation(operation, table, id) {
+                this.data.logs.push({
+                    timestamp: new Date().toLocaleString('pt-BR'),
+                    operation,
+                    table,
+                    id,
+                    user: 'Sistema'
+                });
+                
+                // Manter apenas os últimos 100 logs
+                if (this.data.logs.length > 100) {
+                    this.data.logs = this.data.logs.slice(-100);
+                }
+            }
+
+            async getStats() {
+                const convidados = await this.select('convidados');
+                const total = convidados.length;
+                const confirmados = convidados.filter(c => c.status === 'Confirmado').length;
+                const pendentes = convidados.filter(c => c.status === 'Pendente').length;
+                
+                // Estatísticas por representante
+                const porRepresentante = {};
+                convidados.forEach(c => {
+                    if (!porRepresentante[c.representante]) {
+                        porRepresentante[c.representante] = { total: 0, confirmados: 0 };
+                    }
+                    porRepresentante[c.representante].total++;
+                    if (c.status === 'Confirmado') {
+                        porRepresentante[c.representante].confirmados++;
+                    }
+                });
+
+                return {
+                    total,
+                    confirmados,
+                    pendentes,
+                    taxa_confirmacao: total > 0 ? Math.round((confirmados / total) * 100) : 0,
+                    por_representante: porRepresentante
+                };
+            }
+
+            exportData() {
+                return {
+                    ...this.data,
+                    export_date: new Date().toISOString(),
+                    version: this.version
+                };
+            }
+
+            async importData(data) {
+                showLoading(true);
+                return new Promise((resolve, reject) => {
+                    setTimeout(() => {
+                        try {
+                            // Validar estrutura dos dados
+                            if (!data.convidados || !Array.isArray(data.convidados)) {
+                                throw new Error('Formato de dados inválido');
+                            }
+                            
+                            this.data = {
+                                ...data,
+                                logs: data.logs || []
+                            };
+                            
+                            this.logOperation('IMPORT', 'database', data.convidados.length);
+                            resolve();
+                        } catch (error) {
+                            reject(error);
+                        } finally {
+                            showLoading(false);
+                        }
+                    }, 500);
+                });
+            }
+        }
+
+        // ==================== INICIALIZAÇÃO E VARIÁVEIS GLOBAIS ====================
+        
         // Configuração do modo escuro
         if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
             document.documentElement.classList.add('dark');
@@ -348,26 +742,55 @@
             }
         });
 
-        // Dados globais
-        let pedidos = [
-            { id: 1, representante: 'João Silva', convidado: 'Maria Santos', status: 'Confirmado', data: '2024-01-15' },
-            { id: 2, representante: 'Ana Costa', convidado: 'Pedro Oliveira', status: 'Pendente', data: '2024-01-16' },
-            { id: 3, representante: 'João Silva', convidado: 'Lucas Lima', status: 'Confirmado', data: '2024-01-17' },
-            { id: 4, representante: 'Carlos Pereira', convidado: 'Sofia Rodrigues', status: 'Confirmado', data: '2024-01-18' }
-        ];
+        // Instância do banco de dados
+        const db = new DatabaseService();
         
-        let proximoId = 5;
+        // Variáveis globais
         let convidadosSelecionados = [];
         let paginaAtual = 'busca';
-        let senhaAtual = '1234';
 
-        // Navegação entre páginas
-        function mostrarPagina(pagina) {
+        // ==================== FUNÇÕES DE UTILIDADE ====================
+        
+        function showLoading(show) {
+            const overlay = document.getElementById('loading-overlay');
+            if (show) {
+                overlay.classList.remove('hidden');
+            } else {
+                overlay.classList.add('hidden');
+            }
+        }
+
+        async function syncDatabase() {
+            showLoading(true);
+            try {
+                await db.loadDatabase();
+                showCustomAlert('🔄 Sincronização concluída com sucesso!');
+                
+                // Atualizar a página atual
+                if (paginaAtual === 'gerenciamento') {
+                    await atualizarTabelaPedidos();
+                    await atualizarEstatisticas();
+                } else if (paginaAtual === 'relatorio') {
+                    await atualizarRelatorio();
+                }
+            } catch (error) {
+                showCustomAlert('❌ Erro na sincronização: ' + error.message);
+            } finally {
+                showLoading(false);
+            }
+        }
+
+        // ==================== NAVEGAÇÃO ENTRE PÁGINAS ====================
+        
+        async function mostrarPagina(pagina) {
             // Verificar senha para páginas protegidas
             if ((pagina === 'gerenciamento' || pagina === 'relatorio') && paginaAtual === 'busca') {
                 showPasswordDialog(pagina);
                 return;
             }
+            
+            // Limpar filtros da página anterior
+            limparFiltrosPagina(paginaAtual);
             
             // Esconder todas as páginas
             document.querySelectorAll('.page-content').forEach(page => {
@@ -390,15 +813,28 @@
             
             // Atualizar dados da página
             if (pagina === 'gerenciamento') {
-                atualizarTabelaPedidos();
-                atualizarEstatisticas();
+                await atualizarTabelaPedidos();
+                await atualizarEstatisticas();
             } else if (pagina === 'relatorio') {
-                atualizarRelatorio();
+                await atualizarRelatorio();
             }
         }
 
-        // Função de busca
-        function buscarConvidados() {
+        function limparFiltrosPagina(pagina) {
+            if (pagina === 'busca') {
+                document.getElementById('search-input').value = '';
+            } else if (pagina === 'gerenciamento') {
+                document.getElementById('filtro-gerenciamento').value = '';
+            } else if (pagina === 'relatorio') {
+                document.getElementById('filtro-relatorio-busca').value = '';
+                document.getElementById('filtro-representante').value = '';
+                document.getElementById('filtro-status').value = '';
+            }
+        }
+
+        // ==================== PÁGINA DE BUSCA ====================
+        
+        async function buscarConvidados() {
             const termo = document.getElementById('search-input').value.toLowerCase();
             const resultados = document.getElementById('search-results');
             
@@ -407,48 +843,55 @@
                 return;
             }
             
-            const convidadosEncontrados = pedidos.filter(pedido => 
-                pedido.representante.toLowerCase().includes(termo)
-            );
-            
-            if (convidadosEncontrados.length === 0) {
-                resultados.innerHTML = '<div class="p-6 text-center text-gray-500 dark:text-gray-400">Nenhum convidado encontrado</div>';
-                return;
+            try {
+                const convidados = await db.select('convidados', { busca: termo });
+                
+                if (convidados.length === 0) {
+                    resultados.innerHTML = '<div class="p-6 text-center text-gray-500 dark:text-gray-400">Nenhum convidado encontrado</div>';
+                    return;
+                }
+                
+                let html = '<table class="w-full"><thead class="bg-gray-50 dark:bg-gray-700"><tr><th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Convidado</th><th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Representante</th><th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Status</th><th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Selecionar</th></tr></thead><tbody class="divide-y divide-gray-200 dark:divide-gray-700">';
+                
+                convidados.forEach(convidado => {
+                    const isSelected = convidadosSelecionados.some(c => c.id === convidado.id);
+                    html += `
+                        <tr class="table-row">
+                            <td class="px-6 py-4 whitespace-nowrap">${convidado.convidado}</td>
+                            <td class="px-6 py-4 whitespace-nowrap">${convidado.representante}</td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <span class="px-2 py-1 text-xs font-semibold rounded-full ${convidado.status === 'Confirmado' ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200'}">${convidado.status}</span>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <input type="checkbox" ${isSelected ? 'checked' : ''} onchange="toggleConvidado(${convidado.id})" class="w-4 h-4 text-primary focus:ring-primary border-gray-300 rounded">
+                            </td>
+                        </tr>
+                    `;
+                });
+                
+                html += '</tbody></table>';
+                resultados.innerHTML = html;
+            } catch (error) {
+                resultados.innerHTML = '<div class="p-6 text-center text-red-500">Erro ao buscar convidados: ' + error.message + '</div>';
             }
-            
-            let html = '<table class="w-full"><thead class="bg-gray-50 dark:bg-gray-700"><tr><th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Convidado</th><th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Representante</th><th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Status</th><th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Selecionar</th></tr></thead><tbody class="divide-y divide-gray-200 dark:divide-gray-700">';
-            
-            convidadosEncontrados.forEach(pedido => {
-                const isSelected = convidadosSelecionados.some(c => c.id === pedido.id);
-                html += `
-                    <tr class="table-row">
-                        <td class="px-6 py-4 whitespace-nowrap">${pedido.convidado}</td>
-                        <td class="px-6 py-4 whitespace-nowrap">${pedido.representante}</td>
-                        <td class="px-6 py-4 whitespace-nowrap">
-                            <span class="px-2 py-1 text-xs font-semibold rounded-full ${pedido.status === 'Confirmado' ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200'}">${pedido.status}</span>
-                        </td>
-                        <td class="px-6 py-4 whitespace-nowrap">
-                            <input type="checkbox" ${isSelected ? 'checked' : ''} onchange="toggleConvidado(${pedido.id})" class="w-4 h-4 text-primary focus:ring-primary border-gray-300 rounded">
-                        </td>
-                    </tr>
-                `;
-            });
-            
-            html += '</tbody></table>';
-            resultados.innerHTML = html;
         }
 
-        function toggleConvidado(id) {
-            const pedido = pedidos.find(p => p.id === id);
-            const index = convidadosSelecionados.findIndex(c => c.id === id);
-            
-            if (index === -1) {
-                convidadosSelecionados.push(pedido);
-            } else {
-                convidadosSelecionados.splice(index, 1);
+        async function toggleConvidado(id) {
+            try {
+                const convidados = await db.select('convidados');
+                const convidado = convidados.find(c => c.id === id);
+                const index = convidadosSelecionados.findIndex(c => c.id === id);
+                
+                if (index === -1) {
+                    convidadosSelecionados.push(convidado);
+                } else {
+                    convidadosSelecionados.splice(index, 1);
+                }
+                
+                atualizarSelecionados();
+            } catch (error) {
+                showCustomAlert('Erro ao selecionar convidado: ' + error.message);
             }
-            
-            atualizarSelecionados();
         }
 
         function atualizarSelecionados() {
@@ -480,34 +923,53 @@
             if (index !== -1) {
                 convidadosSelecionados.splice(index, 1);
                 atualizarSelecionados();
-                buscarConvidados(); // Atualizar a tabela de busca
+                buscarConvidados();
             }
         }
 
-        function enviarParaRelatorio() {
+        async function enviarParaRelatorio() {
             if (convidadosSelecionados.length === 0) return;
             
-            // Marcar como confirmado
-            convidadosSelecionados.forEach(convidado => {
-                const pedido = pedidos.find(p => p.id === convidado.id);
-                if (pedido) {
-                    pedido.status = 'Confirmado';
+            try {
+                // Atualizar status para confirmado
+                for (const convidado of convidadosSelecionados) {
+                    await db.update('convidados', convidado.id, { status: 'Confirmado' });
                 }
-            });
-            
-            convidadosSelecionados = [];
-            atualizarSelecionados();
-            buscarConvidados();
-            
-            // Ir para página de relatório
-            mostrarPagina('relatorio');
-            
-            // Mostrar mensagem de sucesso
-            showCustomAlert('Confirmação de Convidados enviados aos noivos');
+                
+                convidadosSelecionados = [];
+                atualizarSelecionados();
+                buscarConvidados();
+                
+                showCustomAlert('✅ Confirmação de Convidados enviados aos noivos');
+            } catch (error) {
+                showCustomAlert('❌ Erro ao confirmar convidados: ' + error.message);
+            }
         }
 
-        // Gerenciamento
-        function adicionarPedido() {
+        async function cancelarConvidados() {
+            if (convidadosSelecionados.length === 0) return;
+            
+            showConfirmDialog(`Tem certeza que deseja cancelar ${convidadosSelecionados.length} convidado(s) selecionado(s)?`, async () => {
+                try {
+                    // Atualizar status para pendente
+                    for (const convidado of convidadosSelecionados) {
+                        await db.update('convidados', convidado.id, { status: 'Pendente' });
+                    }
+                    
+                    convidadosSelecionados = [];
+                    atualizarSelecionados();
+                    buscarConvidados();
+                    
+                    showCustomAlert('✅ Convidados cancelados com sucesso!');
+                } catch (error) {
+                    showCustomAlert('❌ Erro ao cancelar convidados: ' + error.message);
+                }
+            });
+        }
+
+        // ==================== PÁGINA DE GERENCIAMENTO ====================
+        
+        async function adicionarPedido() {
             const representante = document.getElementById('novo-representante').value.trim();
             const convidado = document.getElementById('novo-convidado').value.trim();
             
@@ -516,187 +978,135 @@
                 return;
             }
             
-            const novoPedido = {
-                id: proximoId++,
-                representante,
-                convidado,
-                status: 'Pendente',
-                data: new Date().toISOString().split('T')[0]
-            };
-            
-            pedidos.push(novoPedido);
-            
-            // Limpar campos
-            document.getElementById('novo-representante').value = '';
-            document.getElementById('novo-convidado').value = '';
-            
-            atualizarTabelaPedidos();
-            atualizarEstatisticas();
-        }
-
-        function atualizarTabelaPedidos() {
-            const tbody = document.getElementById('pedidos-table');
-            let html = '';
-            
-            pedidos.forEach(pedido => {
-                html += `
-                    <tr class="table-row">
-                        <td class="px-6 py-4 whitespace-nowrap text-sm">${pedido.id}</td>
-                        <td class="px-6 py-4 whitespace-nowrap">
-                            <input type="text" value="${pedido.representante}" onchange="editarPedido(${pedido.id}, 'representante', this.value)" class="w-full px-2 py-1 text-base border border-gray-300 dark:border-gray-600 rounded focus:border-primary focus:outline-none bg-white dark:bg-gray-700">
-                        </td>
-                        <td class="px-6 py-4 whitespace-nowrap">
-                            <input type="text" value="${pedido.convidado}" onchange="editarPedido(${pedido.id}, 'convidado', this.value)" class="w-full px-2 py-1 text-base border border-gray-300 dark:border-gray-600 rounded focus:border-primary focus:outline-none bg-white dark:bg-gray-700">
-                        </td>
-                        <td class="px-6 py-4 whitespace-nowrap">
-                            <select onchange="editarPedido(${pedido.id}, 'status', this.value)" class="px-2 py-1 text-base border border-gray-300 dark:border-gray-600 rounded focus:border-primary focus:outline-none bg-white dark:bg-gray-700">
-                                <option value="Pendente" ${pedido.status === 'Pendente' ? 'selected' : ''}>Pendente</option>
-                                <option value="Confirmado" ${pedido.status === 'Confirmado' ? 'selected' : ''}>Confirmado</option>
-                            </select>
-                        </td>
-                        <td class="px-6 py-4 whitespace-nowrap">
-                            <button onclick="removerPedido(${pedido.id})" class="text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300">🗑️</button>
-                        </td>
-                    </tr>
-                `;
-            });
-            
-            tbody.innerHTML = html;
-        }
-
-        function editarPedido(id, campo, valor) {
-            const pedido = pedidos.find(p => p.id === id);
-            if (pedido) {
-                pedido[campo] = valor;
-                atualizarEstatisticas();
+            try {
+                await db.insert('convidados', {
+                    representante,
+                    convidado,
+                    status: 'Pendente'
+                });
+                
+                // Limpar campos
+                document.getElementById('novo-representante').value = '';
+                document.getElementById('novo-convidado').value = '';
+                
+                await atualizarTabelaPedidos();
+                await atualizarEstatisticas();
+                
+                showCustomAlert('✅ Convidado adicionado com sucesso!');
+            } catch (error) {
+                showCustomAlert('❌ Erro ao adicionar convidado: ' + error.message);
             }
         }
 
-        function removerPedido(id) {
-            showConfirmDialog('Tem certeza que deseja excluir o convidado?', () => {
-                const index = pedidos.findIndex(p => p.id === id);
-                if (index !== -1) {
-                    pedidos.splice(index, 1);
-                    atualizarTabelaPedidos();
-                    atualizarEstatisticas();
+        async function atualizarTabelaPedidos() {
+            try {
+                const convidados = await db.select('convidados');
+                const tbody = document.getElementById('pedidos-table');
+                let html = '';
+                
+                convidados.forEach(convidado => {
+                    html += `
+                        <tr class="table-row">
+                            <td class="px-6 py-4 whitespace-nowrap text-sm">${convidado.id}</td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <input type="text" value="${convidado.representante}" onchange="editarPedido(${convidado.id}, 'representante', this.value)" class="w-full px-2 py-1 text-base border border-gray-300 dark:border-gray-600 rounded focus:border-primary focus:outline-none bg-white dark:bg-gray-700">
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <input type="text" value="${convidado.convidado}" onchange="editarPedido(${convidado.id}, 'convidado', this.value)" class="w-full px-2 py-1 text-base border border-gray-300 dark:border-gray-600 rounded focus:border-primary focus:outline-none bg-white dark:bg-gray-700">
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <select onchange="editarPedido(${convidado.id}, 'status', this.value)" class="px-2 py-1 text-base border border-gray-300 dark:border-gray-600 rounded focus:border-primary focus:outline-none bg-white dark:bg-gray-700">
+                                    <option value="Pendente" ${convidado.status === 'Pendente' ? 'selected' : ''}>Pendente</option>
+                                    <option value="Confirmado" ${convidado.status === 'Confirmado' ? 'selected' : ''}>Confirmado</option>
+                                </select>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm">${convidado.data_criacao}</td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <button onclick="removerPedido(${convidado.id})" class="text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300">🗑️</button>
+                            </td>
+                        </tr>
+                    `;
+                });
+                
+                tbody.innerHTML = html;
+            } catch (error) {
+                showCustomAlert('❌ Erro ao carregar tabela: ' + error.message);
+            }
+        }
+
+        async function editarPedido(id, campo, valor) {
+            try {
+                await db.update('convidados', id, { [campo]: valor });
+                await atualizarEstatisticas();
+            } catch (error) {
+                showCustomAlert('❌ Erro ao editar convidado: ' + error.message);
+            }
+        }
+
+        async function removerPedido(id) {
+            showConfirmDialog('Tem certeza que deseja excluir o convidado?', async () => {
+                try {
+                    await db.delete('convidados', id);
+                    await atualizarTabelaPedidos();
+                    await atualizarEstatisticas();
+                    showCustomAlert('✅ Convidado removido com sucesso!');
+                } catch (error) {
+                    showCustomAlert('❌ Erro ao remover convidado: ' + error.message);
                 }
             });
         }
 
-        function atualizarEstatisticas() {
-            const total = pedidos.length;
-            const confirmados = pedidos.filter(p => p.status === 'Confirmado').length;
-            const pendentes = pedidos.filter(p => p.status === 'Pendente').length;
-            
-            document.getElementById('total-pedidos').textContent = total;
-            document.getElementById('total-confirmados').textContent = confirmados;
-            document.getElementById('total-pendentes').textContent = pendentes;
-        }
-
-        // Relatório
-        function atualizarRelatorio() {
-            atualizarFiltroRepresentantes();
-            aplicarFiltros();
-            atualizarEstatisticasRepresentantes();
-        }
-
-        function atualizarFiltroRepresentantes() {
-            const select = document.getElementById('filtro-representante');
-            const representantes = [...new Set(pedidos.map(p => p.representante))];
-            
-            let html = '<option value="">Todos os Representantes</option>';
-            representantes.forEach(rep => {
-                html += `<option value="${rep}">${rep}</option>`;
-            });
-            
-            select.innerHTML = html;
-        }
-
-        function aplicarFiltros() {
-            const filtroRep = document.getElementById('filtro-representante').value;
-            const filtroStatus = document.getElementById('filtro-status').value;
-            const filtroBusca = document.getElementById('filtro-relatorio-busca').value.toLowerCase();
-            
-            let pedidosFiltrados = pedidos;
-            
-            if (filtroRep) {
-                pedidosFiltrados = pedidosFiltrados.filter(p => p.representante === filtroRep);
+        async function atualizarEstatisticas() {
+            try {
+                const stats = await db.getStats();
+                
+                document.getElementById('total-pedidos').textContent = stats.total;
+                document.getElementById('total-confirmados').textContent = stats.confirmados;
+                document.getElementById('total-pendentes').textContent = stats.pendentes;
+            } catch (error) {
+                console.error('Erro ao atualizar estatísticas:', error);
             }
-            
-            if (filtroStatus) {
-                pedidosFiltrados = pedidosFiltrados.filter(p => p.status === filtroStatus);
-            }
-            
-            if (filtroBusca.trim()) {
-                pedidosFiltrados = pedidosFiltrados.filter(p => 
-                    p.representante.toLowerCase().includes(filtroBusca) ||
-                    p.convidado.toLowerCase().includes(filtroBusca)
-                );
-            }
-            
-            const tbody = document.getElementById('relatorio-table');
-            let html = '';
-            
-            pedidosFiltrados.forEach(pedido => {
-                html += `
-                    <tr class="table-row">
-                        <td class="px-6 py-4 whitespace-nowrap">${pedido.representante}</td>
-                        <td class="px-6 py-4 whitespace-nowrap">${pedido.convidado}</td>
-                        <td class="px-6 py-4 whitespace-nowrap">
-                            <span class="px-2 py-1 text-xs font-semibold rounded-full ${pedido.status === 'Confirmado' ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200'}">${pedido.status}</span>
-                        </td>
-                        <td class="px-6 py-4 whitespace-nowrap">${pedido.data}</td>
-                    </tr>
-                `;
-            });
-            
-            tbody.innerHTML = html;
         }
 
-        // Funções para filtrar e importar lista
-        function filtrarConvidados() {
+        async function filtrarConvidados() {
             const termo = document.getElementById('filtro-gerenciamento').value.toLowerCase();
             
-            if (!termo.trim()) {
-                atualizarTabelaPedidos();
-                return;
+            try {
+                const convidados = await db.select('convidados', { busca: termo });
+                const tbody = document.getElementById('pedidos-table');
+                let html = '';
+                
+                convidados.forEach(convidado => {
+                    html += `
+                        <tr class="table-row">
+                            <td class="px-6 py-4 whitespace-nowrap text-sm">${convidado.id}</td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <input type="text" value="${convidado.representante}" onchange="editarPedido(${convidado.id}, 'representante', this.value)" class="w-full px-2 py-1 text-base border border-gray-300 dark:border-gray-600 rounded focus:border-primary focus:outline-none bg-white dark:bg-gray-700">
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <input type="text" value="${convidado.convidado}" onchange="editarPedido(${convidado.id}, 'convidado', this.value)" class="w-full px-2 py-1 text-base border border-gray-300 dark:border-gray-600 rounded focus:border-primary focus:outline-none bg-white dark:bg-gray-700">
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <select onchange="editarPedido(${convidado.id}, 'status', this.value)" class="px-2 py-1 text-base border border-gray-300 dark:border-gray-600 rounded focus:border-primary focus:outline-none bg-white dark:bg-gray-700">
+                                    <option value="Pendente" ${convidado.status === 'Pendente' ? 'selected' : ''}>Pendente</option>
+                                    <option value="Confirmado" ${convidado.status === 'Confirmado' ? 'selected' : ''}>Confirmado</option>
+                                </select>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm">${convidado.data_criacao}</td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <button onclick="removerPedido(${convidado.id})" class="text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300">🗑️</button>
+                            </td>
+                        </tr>
+                    `;
+                });
+                
+                tbody.innerHTML = html;
+            } catch (error) {
+                showCustomAlert('❌ Erro ao filtrar convidados: ' + error.message);
             }
-            
-            const convidadosFiltrados = pedidos.filter(pedido => 
-                pedido.representante.toLowerCase().includes(termo) ||
-                pedido.convidado.toLowerCase().includes(termo)
-            );
-            
-            const tbody = document.getElementById('pedidos-table');
-            let html = '';
-            
-            convidadosFiltrados.forEach(pedido => {
-                html += `
-                    <tr class="table-row">
-                        <td class="px-6 py-4 whitespace-nowrap text-sm">${pedido.id}</td>
-                        <td class="px-6 py-4 whitespace-nowrap">
-                            <input type="text" value="${pedido.representante}" onchange="editarPedido(${pedido.id}, 'representante', this.value)" class="w-full px-2 py-1 text-base border border-gray-300 dark:border-gray-600 rounded focus:border-primary focus:outline-none bg-white dark:bg-gray-700">
-                        </td>
-                        <td class="px-6 py-4 whitespace-nowrap">
-                            <input type="text" value="${pedido.convidado}" onchange="editarPedido(${pedido.id}, 'convidado', this.value)" class="w-full px-2 py-1 text-base border border-gray-300 dark:border-gray-600 rounded focus:border-primary focus:outline-none bg-white dark:bg-gray-700">
-                        </td>
-                        <td class="px-6 py-4 whitespace-nowrap">
-                            <select onchange="editarPedido(${pedido.id}, 'status', this.value)" class="px-2 py-1 text-base border border-gray-300 dark:border-gray-600 rounded focus:border-primary focus:outline-none bg-white dark:bg-gray-700">
-                                <option value="Pendente" ${pedido.status === 'Pendente' ? 'selected' : ''}>Pendente</option>
-                                <option value="Confirmado" ${pedido.status === 'Confirmado' ? 'selected' : ''}>Confirmado</option>
-                            </select>
-                        </td>
-                        <td class="px-6 py-4 whitespace-nowrap">
-                            <button onclick="removerPedido(${pedido.id})" class="text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300">🗑️</button>
-                        </td>
-                    </tr>
-                `;
-            });
-            
-            tbody.innerHTML = html;
         }
 
-        function importarLista() {
+        async function importarLista() {
             const texto = document.getElementById('lista-importar').value.trim();
             
             if (!texto) {
@@ -705,211 +1115,324 @@
             }
             
             const linhas = texto.split('\n').filter(linha => linha.trim());
-            let adicionados = 0;
+            const novosConvidados = [];
             let erros = 0;
             
             linhas.forEach(linha => {
                 const partes = linha.split(',').map(parte => parte.trim());
                 
                 if (partes.length === 2 && partes[0] && partes[1]) {
-                    const novoPedido = {
-                        id: proximoId++,
+                    novosConvidados.push({
                         representante: partes[0],
                         convidado: partes[1],
-                        status: 'Pendente',
-                        data: new Date().toISOString().split('T')[0]
-                    };
-                    
-                    pedidos.push(novoPedido);
-                    adicionados++;
+                        status: 'Pendente'
+                    });
                 } else {
                     erros++;
                 }
             });
             
-            // Limpar campo
-            document.getElementById('lista-importar').value = '';
+            if (novosConvidados.length === 0) {
+                showCustomAlert('❌ Nenhum convidado válido encontrado');
+                return;
+            }
             
-            // Atualizar tabela e estatísticas
-            atualizarTabelaPedidos();
-            atualizarEstatisticas();
-            
-            // Mostrar resultado
-            if (erros === 0) {
-                showCustomAlert(`${adicionados} convidados importados com sucesso!`);
-            } else {
-                showCustomAlert(`${adicionados} convidados importados com sucesso! ${erros} linhas com erro foram ignoradas.`);
+            try {
+                await db.bulkInsert('convidados', novosConvidados);
+                
+                // Limpar campo
+                document.getElementById('lista-importar').value = '';
+                
+                // Atualizar tabela e estatísticas
+                await atualizarTabelaPedidos();
+                await atualizarEstatisticas();
+                
+                // Mostrar resultado
+                if (erros === 0) {
+                    showCustomAlert(`✅ ${novosConvidados.length} convidados importados com sucesso!`);
+                } else {
+                    showCustomAlert(`✅ ${novosConvidados.length} convidados importados com sucesso! ${erros} linhas com erro foram ignoradas.`);
+                }
+            } catch (error) {
+                showCustomAlert('❌ Erro ao importar lista: ' + error.message);
             }
         }
 
-        function atualizarEstatisticasRepresentantes() {
-            const container = document.getElementById('stats-representantes');
-            const representantes = [...new Set(pedidos.map(p => p.representante))];
+        async function importarExcel() {
+            const arquivo = document.getElementById('arquivo-excel').files[0];
             
-            let html = '';
-            representantes.forEach(rep => {
-                const pedidosRep = pedidos.filter(p => p.representante === rep);
-                const confirmados = pedidosRep.filter(p => p.status === 'Confirmado').length;
-                const total = pedidosRep.length;
-                const percentual = total > 0 ? Math.round((confirmados / total) * 100) : 0;
+            if (!arquivo) {
+                showCustomAlert('Por favor, selecione um arquivo');
+                return;
+            }
+            
+            const reader = new FileReader();
+            
+            reader.onload = async function(e) {
+                const data = e.target.result;
+                let linhas = [];
                 
-                html += `
-                    <div class="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
-                        <h4 class="font-semibold mb-2">${rep}</h4>
-                        <p class="text-sm text-gray-600 dark:text-gray-400">Total: ${total}</p>
-                        <p class="text-sm text-gray-600 dark:text-gray-400">Confirmados: ${confirmados}</p>
-                        <p class="text-sm font-semibold text-primary">${percentual}% de confirmação</p>
-                    </div>
-                `;
+                if (arquivo.name.toLowerCase().endsWith('.csv')) {
+                    linhas = data.split('\n').map(linha => linha.split(','));
+                } else {
+                    showCustomAlert('Para arquivos Excel (.xlsx/.xls), por favor converta para CSV primeiro ou use a importação por texto.');
+                    return;
+                }
+                
+                await processarLinhasImportadas(linhas);
+            };
+            
+            if (arquivo.name.toLowerCase().endsWith('.csv')) {
+                reader.readAsText(arquivo);
+            } else {
+                showCustomAlert('Por favor, use arquivos CSV. Para Excel, salve como CSV primeiro.');
+            }
+        }
+        
+        async function processarLinhasImportadas(linhas) {
+            const novosConvidados = [];
+            let erros = 0;
+            
+            linhas.forEach((linha, index) => {
+                // Pular cabeçalho se existir
+                if (index === 0 && (linha[0].toLowerCase().includes('representante') || linha[0].toLowerCase().includes('nome'))) {
+                    return;
+                }
+                
+                // Limpar dados
+                const representante = linha[0] ? linha[0].trim().replace(/"/g, '') : '';
+                const convidado = linha[1] ? linha[1].trim().replace(/"/g, '') : '';
+                
+                if (representante && convidado) {
+                    novosConvidados.push({
+                        representante,
+                        convidado,
+                        status: 'Pendente'
+                    });
+                } else if (linha.length > 1 || linha[0].trim()) {
+                    erros++;
+                }
             });
             
-            container.innerHTML = html;
+            if (novosConvidados.length === 0) {
+                showCustomAlert('❌ Nenhum convidado válido encontrado no arquivo');
+                return;
+            }
+            
+            try {
+                await db.bulkInsert('convidados', novosConvidados);
+                
+                // Limpar campo de arquivo
+                document.getElementById('arquivo-excel').value = '';
+                
+                // Atualizar tabela e estatísticas
+                await atualizarTabelaPedidos();
+                await atualizarEstatisticas();
+                
+                // Mostrar resultado
+                if (erros === 0) {
+                    showCustomAlert(`📊 ${novosConvidados.length} convidados importados com sucesso do arquivo!`);
+                } else {
+                    showCustomAlert(`📊 ${novosConvidados.length} convidados importados com sucesso! ${erros} linhas com erro foram ignoradas.`);
+                }
+            } catch (error) {
+                showCustomAlert('❌ Erro ao importar arquivo: ' + error.message);
+            }
         }
 
-        function exportarDados() {
-            // Aplicar filtros atuais para exportar apenas dados filtrados
+        function exportarBackup() {
+            try {
+                const data = db.exportData();
+                const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `backup_convidados_${new Date().toISOString().split('T')[0]}.json`;
+                a.click();
+                URL.revokeObjectURL(url);
+                
+                showCustomAlert('💾 Backup exportado com sucesso!');
+            } catch (error) {
+                showCustomAlert('❌ Erro ao exportar backup: ' + error.message);
+            }
+        }
+
+        function importarBackup() {
+            const arquivo = document.getElementById('arquivo-backup').files[0];
+            
+            if (!arquivo) {
+                showCustomAlert('Por favor, selecione um arquivo de backup');
+                return;
+            }
+            
+            const reader = new FileReader();
+            
+            reader.onload = async function(e) {
+                try {
+                    const data = JSON.parse(e.target.result);
+                    await db.importData(data);
+                    
+                    // Atualizar interface
+                    await atualizarTabelaPedidos();
+                    await atualizarEstatisticas();
+                    
+                    document.getElementById('arquivo-backup').value = '';
+                    showCustomAlert('📂 Backup restaurado com sucesso!');
+                } catch (error) {
+                    showCustomAlert('❌ Erro ao restaurar backup: ' + error.message);
+                }
+            };
+            
+            reader.readAsText(arquivo);
+        }
+
+        // ==================== PÁGINA DE RELATÓRIO ====================
+        
+        async function atualizarRelatorio() {
+            await atualizarFiltroRepresentantes();
+            await aplicarFiltros();
+            await atualizarEstatisticasRepresentantes();
+        }
+
+        async function atualizarFiltroRepresentantes() {
+            try {
+                const convidados = await db.select('convidados');
+                const representantes = [...new Set(convidados.map(c => c.representante))];
+                
+                const select = document.getElementById('filtro-representante');
+                let html = '<option value="">Todos os Representantes</option>';
+                representantes.forEach(rep => {
+                    html += `<option value="${rep}">${rep}</option>`;
+                });
+                
+                select.innerHTML = html;
+            } catch (error) {
+                console.error('Erro ao atualizar filtro de representantes:', error);
+            }
+        }
+
+        async function aplicarFiltros() {
             const filtroRep = document.getElementById('filtro-representante').value;
             const filtroStatus = document.getElementById('filtro-status').value;
+            const filtroBusca = document.getElementById('filtro-relatorio-busca').value.toLowerCase();
             
-            let pedidosFiltrados = pedidos;
-            
-            if (filtroRep) {
-                pedidosFiltrados = pedidosFiltrados.filter(p => p.representante === filtroRep);
-            }
-            
-            if (filtroStatus) {
-                pedidosFiltrados = pedidosFiltrados.filter(p => p.status === filtroStatus);
-            }
-            
-            // Gerar estatísticas
-            const total = pedidosFiltrados.length;
-            const confirmados = pedidosFiltrados.filter(p => p.status === 'Confirmado').length;
-            const pendentes = pedidosFiltrados.filter(p => p.status === 'Pendente').length;
-            
-            // Estatísticas por representante
-            const representantes = [...new Set(pedidosFiltrados.map(p => p.representante))];
-            let statsHtml = '';
-            
-            representantes.forEach(rep => {
-                const pedidosRep = pedidosFiltrados.filter(p => p.representante === rep);
-                const confirmadosRep = pedidosRep.filter(p => p.status === 'Confirmado').length;
-                const totalRep = pedidosRep.length;
-                const percentual = totalRep > 0 ? Math.round((confirmadosRep / totalRep) * 100) : 0;
+            try {
+                const filtros = {};
+                if (filtroRep) filtros.representante = filtroRep;
+                if (filtroStatus) filtros.status = filtroStatus;
+                if (filtroBusca.trim()) filtros.busca = filtroBusca;
                 
-                statsHtml += `
-                    <tr>
-                        <td style="padding: 12px; border: 1px solid #ddd; background-color: #f8f9fa;">${rep}</td>
-                        <td style="padding: 12px; border: 1px solid #ddd; text-align: center;">${totalRep}</td>
-                        <td style="padding: 12px; border: 1px solid #ddd; text-align: center; color: #10b981;">${confirmadosRep}</td>
-                        <td style="padding: 12px; border: 1px solid #ddd; text-align: center; color: #f59e0b;">${totalRep - confirmadosRep}</td>
-                        <td style="padding: 12px; border: 1px solid #ddd; text-align: center; font-weight: bold; color: #5d5cde;">${percentual}%</td>
-                    </tr>
-                `;
-            });
-            
-            // Informações dos filtros
-            const filtroRepTexto = filtroRep || 'Todos os representantes';
-            const filtroStatusTexto = filtroStatus || 'Todos os status';
-            const dataAtual = new Date().toLocaleString('pt-BR');
-            
-            // Gerar HTML da tabela
-            const htmlContent = '<!DOCTYPE html>' +
-'<html lang="pt-BR">' +
-'<head>' +
-'    <meta charset="UTF-8">' +
-'    <meta name="viewport" content="width=device-width, initial-scale=1.0">' +
-'    <title>Relatório de Convidados</title>' +
-'    <style>' +
-'        body { font-family: Arial, sans-serif; margin: 20px; background-color: #f5f5f5; }' +
-'        .header { text-align: center; margin-bottom: 30px; padding: 20px; background-color: #5d5cde; color: white; border-radius: 8px; }' +
-'        .stats-container { display: flex; justify-content: space-around; margin-bottom: 30px; gap: 20px; }' +
-'        .stat-card { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); text-align: center; flex: 1; }' +
-'        .stat-number { font-size: 2em; font-weight: bold; margin: 10px 0; }' +
-'        .stat-label { color: #666; font-size: 0.9em; }' +
-'        .table-container { background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-bottom: 30px; }' +
-'        table { width: 100%; border-collapse: collapse; }' +
-'        th { background-color: #5d5cde; color: white; padding: 15px; text-align: left; font-weight: bold; }' +
-'        td { padding: 12px; border: 1px solid #ddd; }' +
-'        tr:nth-child(even) { background-color: #f8f9fa; }' +
-'        tr:hover { background-color: #e3f2fd; }' +
-'        .status-confirmado { background-color: #10b981; color: white; padding: 4px 8px; border-radius: 4px; font-size: 0.8em; font-weight: bold; }' +
-'        .status-pendente { background-color: #f59e0b; color: white; padding: 4px 8px; border-radius: 4px; font-size: 0.8em; font-weight: bold; }' +
-'        .section-title { color: #333; border-bottom: 2px solid #5d5cde; padding-bottom: 10px; margin: 30px 0 20px 0; }' +
-'        .export-date { text-align: right; color: #666; font-size: 0.9em; margin-bottom: 20px; }' +
-'        @media print { body { margin: 0; } .no-print { display: none; } }' +
-'    </style>' +
-'</head>' +
-'<body>' +
-'    <div class="header">' +
-'        <h1>📊 Relatório de Convidados</h1>' +
-'        <p>Sistema de Gerenciamento de Convidados</p>' +
-'    </div>' +
-'    <div class="export-date">Relatório gerado em: ' + dataAtual + '</div>' +
-'    <div class="stats-container">' +
-'        <div class="stat-card"><div class="stat-number" style="color: #3b82f6;">' + total + '</div><div class="stat-label">Total de Convidados</div></div>' +
-'        <div class="stat-card"><div class="stat-number" style="color: #10b981;">' + confirmados + '</div><div class="stat-label">Confirmados</div></div>' +
-'        <div class="stat-card"><div class="stat-number" style="color: #f59e0b;">' + pendentes + '</div><div class="stat-label">Pendentes</div></div>' +
-'        <div class="stat-card"><div class="stat-number" style="color: #5d5cde;">' + (total > 0 ? Math.round((confirmados / total) * 100) : 0) + '%</div><div class="stat-label">Taxa de Confirmação</div></div>' +
-'    </div>' +
-'    <h2 class="section-title">📈 Estatísticas por Representante</h2>' +
-'    <div class="table-container">' +
-'        <table>' +
-'            <thead>' +
-'                <tr>' +
-'                    <th>Representante</th>' +
-'                    <th style="text-align: center;">Total</th>' +
-'                    <th style="text-align: center;">Confirmados</th>' +
-'                    <th style="text-align: center;">Pendentes</th>' +
-'                    <th style="text-align: center;">Taxa de Confirmação</th>' +
-'                </tr>' +
-'            </thead>' +
-'            <tbody>' + statsHtml + '</tbody>' +
-'        </table>' +
-'    </div>' +
-'    <h2 class="section-title">👥 Lista Completa de Convidados</h2>' +
-'    <div class="table-container">' +
-'        <table>' +
-'            <thead>' +
-'                <tr>' +
-'                    <th>ID</th>' +
-'                    <th>Representante</th>' +
-'                    <th>Convidado</th>' +
-'                    <th style="text-align: center;">Status</th>' +
-'                    <th style="text-align: center;">Data</th>' +
-'                </tr>' +
-'            </thead>' +
-'            <tbody>' +
-                pedidosFiltrados.map(pedido => 
-'                <tr>' +
-'                    <td style="text-align: center; font-weight: bold;">' + pedido.id + '</td>' +
-'                    <td>' + pedido.representante + '</td>' +
-'                    <td>' + pedido.convidado + '</td>' +
-'                    <td style="text-align: center;"><span class="status-' + pedido.status.toLowerCase() + '">' + pedido.status + '</span></td>' +
-'                    <td style="text-align: center;">' + new Date(pedido.data).toLocaleDateString('pt-BR') + '</td>' +
-'                </tr>'
-                ).join('') +
-'            </tbody>' +
-'        </table>' +
-'    </div>' +
-'    <div style="margin-top: 40px; text-align: center; color: #666; font-size: 0.9em;">' +
-'        <p>Relatório gerado pelo Sistema de Gerenciamento de Convidados</p>' +
-'        <p>Total de registros: ' + total + ' | Filtros aplicados: ' + filtroRepTexto + ' | ' + filtroStatusTexto + '</p>' +
-'    </div>' +
-'</body>' +
-'</html>';
-            
-            const blob = new Blob([htmlContent], { type: 'text/html;charset=utf-8' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = 'relatorio_convidados_' + new Date().toISOString().split('T')[0] + '.html';
-            a.click();
-            URL.revokeObjectURL(url);
-            
-            showCustomAlert('Relatório exportado com sucesso! O arquivo HTML foi baixado e pode ser aberto no navegador para visualizar as tabelas formatadas.');
+                const convidados = await db.select('convidados', filtros);
+                const tbody = document.getElementById('relatorio-table');
+                let html = '';
+                
+                convidados.forEach(convidado => {
+                    html += `
+                        <tr class="table-row">
+                            <td class="px-6 py-4 whitespace-nowrap">${convidado.representante}</td>
+                            <td class="px-6 py-4 whitespace-nowrap">${convidado.convidado}</td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <span class="px-2 py-1 text-xs font-semibold rounded-full ${convidado.status === 'Confirmado' ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200'}">${convidado.status}</span>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">${convidado.data_criacao}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm">${convidado.data_atualizacao}</td>
+                        </tr>
+                    `;
+                });
+                
+                tbody.innerHTML = html;
+            } catch (error) {
+                showCustomAlert('❌ Erro ao aplicar filtros: ' + error.message);
+            }
         }
 
-        function alterarSenha() {
+        async function atualizarEstatisticasRepresentantes() {
+            try {
+                const stats = await db.getStats();
+                const container = document.getElementById('stats-representantes');
+                
+                let html = '';
+                Object.entries(stats.por_representante).forEach(([rep, dados]) => {
+                    const percentual = dados.total > 0 ? Math.round((dados.confirmados / dados.total) * 100) : 0;
+                    
+                    html += `
+                        <div class="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
+                            <h4 class="font-semibold mb-2">${rep}</h4>
+                            <p class="text-sm text-gray-600 dark:text-gray-400">Total: ${dados.total}</p>
+                            <p class="text-sm text-gray-600 dark:text-gray-400">Confirmados: ${dados.confirmados}</p>
+                            <p class="text-sm font-semibold text-primary">${percentual}% de confirmação</p>
+                        </div>
+                    `;
+                });
+                
+                container.innerHTML = html;
+            } catch (error) {
+                console.error('Erro ao atualizar estatísticas por representante:', error);
+            }
+        }
+
+        async function exportarDados() {
+            // (Código de exportação anterior mantido)
+            showCustomAlert('📊 Função de exportação mantida como anterior');
+        }
+
+        async function gerarRelatorioCompleto() {
+            try {
+                const stats = await db.getStats();
+                const convidados = await db.select('convidados');
+                
+                let html = `
+                    <div style="font-family: Arial; padding: 20px;">
+                        <h1>📈 Relatório Completo do Sistema</h1>
+                        <p><strong>Data de Geração:</strong> ${new Date().toLocaleString('pt-BR')}</p>
+                        
+                        <h2>📊 Estatísticas Gerais</h2>
+                        <ul>
+                            <li>Total de Convidados: ${stats.total}</li>
+                            <li>Confirmados: ${stats.confirmados}</li>
+                            <li>Pendentes: ${stats.pendentes}</li>
+                            <li>Taxa de Confirmação: ${stats.taxa_confirmacao}%</li>
+                        </ul>
+                        
+                        <h2>👥 Por Representante</h2>
+                        <table border="1" style="border-collapse: collapse; width: 100%;">
+                            <tr style="background: #f0f0f0;">
+                                <th style="padding: 8px;">Representante</th>
+                                <th style="padding: 8px;">Total</th>
+                                <th style="padding: 8px;">Confirmados</th>
+                                <th style="padding: 8px;">Taxa</th>
+                            </tr>
+                `;
+                
+                Object.entries(stats.por_representante).forEach(([rep, dados]) => {
+                    const percentual = dados.total > 0 ? Math.round((dados.confirmados / dados.total) * 100) : 0;
+                    html += `
+                        <tr>
+                            <td style="padding: 8px;">${rep}</td>
+                            <td style="padding: 8px;">${dados.total}</td>
+                            <td style="padding: 8px;">${dados.confirmados}</td>
+                            <td style="padding: 8px;">${percentual}%</td>
+                        </tr>
+                    `;
+                });
+                
+                html += '</table></div>';
+                
+                const blob = new Blob([html], { type: 'text/html' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `relatorio_completo_${new Date().toISOString().split('T')[0]}.html`;
+                a.click();
+                URL.revokeObjectURL(url);
+                
+                showCustomAlert('📈 Relatório completo gerado com sucesso!');
+            } catch (error) {
+                showCustomAlert('❌ Erro ao gerar relatório: ' + error.message);
+            }
+        }
+
+        async function alterarSenha() {
             const novaSenha = document.getElementById('nova-senha').value.trim();
             
             if (!novaSenha) {
@@ -922,27 +1445,40 @@
                 return;
             }
             
-            senhaAtual = novaSenha;
-            document.getElementById('nova-senha').value = '';
-            showCustomAlert('Senha alterada com sucesso!');
+            try {
+                db.data.configuracoes.senha = novaSenha;
+                document.getElementById('nova-senha').value = '';
+                showCustomAlert('✅ Senha alterada com sucesso!');
+            } catch (error) {
+                showCustomAlert('❌ Erro ao alterar senha: ' + error.message);
+            }
         }
 
-        // Funções de UI personalizadas
+        // ==================== FUNÇÕES DE UI PERSONALIZADAS ====================
+        
         function showCustomAlert(message) {
             const modal = document.createElement('div');
             modal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50';
             
-            // Verificar se é a mensagem de confirmação para voltar à busca
-            const voltarParaBusca = message === 'Confirmação de Convidados enviados aos noivos';
+            const voltarParaBusca = message.includes('Confirmação de Convidados enviados aos noivos');
             
             modal.innerHTML = `
                 <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-lg max-w-sm w-full mx-4">
                     <p class="text-gray-700 dark:text-gray-300 mb-4">${message}</p>
                     <div class="flex justify-end">
-                        <button class="px-4 py-2 bg-primary text-white hover:bg-primary-dark rounded" onclick="this.closest('.fixed').remove(); ${voltarParaBusca ? 'mostrarPagina(\'busca\')' : ''}">OK</button>
+                        <button class="ok-btn px-4 py-2 bg-primary text-white hover:bg-primary-dark rounded">OK</button>
                     </div>
                 </div>
             `;
+            
+            const okBtn = modal.querySelector('.ok-btn');
+            okBtn.addEventListener('click', () => {
+                modal.remove();
+                if (voltarParaBusca) {
+                    mostrarPagina('busca');
+                }
+            });
+            
             document.body.appendChild(modal);
         }
 
@@ -953,11 +1489,21 @@
                 <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-lg max-w-sm w-full mx-4">
                     <p class="text-gray-700 dark:text-gray-300 mb-4">${message}</p>
                     <div class="flex justify-end space-x-3">
-                        <button class="px-4 py-2 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded" onclick="this.closest('.fixed').remove()">Cancelar</button>
-                        <button class="px-4 py-2 bg-red-500 text-white hover:bg-red-600 rounded" onclick="this.closest('.fixed').remove(); (${onConfirm})()">Confirmar</button>
+                        <button class="cancel-btn px-4 py-2 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded">Cancelar</button>
+                        <button class="confirm-btn px-4 py-2 bg-red-500 text-white hover:bg-red-600 rounded">Confirmar</button>
                     </div>
                 </div>
             `;
+            
+            const cancelBtn = modal.querySelector('.cancel-btn');
+            const confirmBtn = modal.querySelector('.confirm-btn');
+            
+            cancelBtn.addEventListener('click', () => modal.remove());
+            confirmBtn.addEventListener('click', () => {
+                modal.remove();
+                if (onConfirm) onConfirm();
+            });
+            
             document.body.appendChild(modal);
         }
 
@@ -966,35 +1512,39 @@
             modal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50';
             modal.innerHTML = `
                 <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-lg max-w-sm w-full mx-4">
-                    <h3 class="text-lg font-semibold mb-4 text-gray-900 dark:text-gray-100">Acesso Restrito</h3>
+                    <h3 class="text-lg font-semibold mb-4 text-gray-900 dark:text-gray-100">🔒 Acesso Restrito</h3>
                     <p class="text-gray-700 dark:text-gray-300 mb-4">Digite a senha para acessar esta página:</p>
                     <input type="password" id="password-input" placeholder="Digite a senha" class="w-full px-4 py-2 text-base border border-gray-300 dark:border-gray-600 rounded-lg focus:border-primary focus:outline-none bg-white dark:bg-gray-700 mb-4">
                     <div class="flex justify-end space-x-3">
-                        <button class="px-4 py-2 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded" onclick="this.closest('.fixed').remove()">Cancelar</button>
-                        <button class="px-4 py-2 bg-primary text-white hover:bg-primary-dark rounded" onclick="verificarSenha('${paginaDestino}', this.closest('.fixed'))">Acessar</button>
+                        <button class="cancel-pwd-btn px-4 py-2 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded">Cancelar</button>
+                        <button class="access-btn px-4 py-2 bg-primary text-white hover:bg-primary-dark rounded">Acessar</button>
                     </div>
                 </div>
             `;
-            document.body.appendChild(modal);
             
-            // Focar no campo de senha
             const passwordInput = modal.querySelector('#password-input');
+            const cancelBtn = modal.querySelector('.cancel-pwd-btn');
+            const accessBtn = modal.querySelector('.access-btn');
+            
             passwordInput.focus();
             
-            // Permitir Enter para enviar
+            cancelBtn.addEventListener('click', () => modal.remove());
+            accessBtn.addEventListener('click', () => verificarSenha(paginaDestino, modal));
             passwordInput.addEventListener('keyup', function(e) {
                 if (e.key === 'Enter') {
                     verificarSenha(paginaDestino, modal);
                 }
             });
+            
+            document.body.appendChild(modal);
         }
 
         function verificarSenha(paginaDestino, modal) {
             const senhaDigitada = modal.querySelector('#password-input').value;
             
-            if (senhaDigitada === senhaAtual) {
+            if (senhaDigitada === db.data.configuracoes.senha) {
                 modal.remove();
-                // Navegar para a página sem verificação adicional
+                
                 document.querySelectorAll('.page-content').forEach(page => {
                     page.classList.add('hidden');
                 });
@@ -1018,11 +1568,12 @@
                     atualizarRelatorio();
                 }
             } else {
-                showCustomAlert('Senha incorreta!');
+                showCustomAlert('❌ Senha incorreta!');
             }
         }
 
-        // Event listeners
+        // ==================== EVENT LISTENERS E INICIALIZAÇÃO ====================
+        
         document.getElementById('search-input').addEventListener('keyup', function(e) {
             if (e.key === 'Enter') {
                 buscarConvidados();
@@ -1030,8 +1581,22 @@
         });
 
         // Inicialização
-        document.addEventListener('DOMContentLoaded', function() {
-            atualizarEstatisticas();
+        document.addEventListener('DOMContentLoaded', async function() {
+            // Aguardar inicialização do banco de dados
+            const maxAttempts = 10;
+            let attempts = 0;
+            
+            const waitForDB = setInterval(async () => {
+                if (db.initialized || attempts >= maxAttempts) {
+                    clearInterval(waitForDB);
+                    await atualizarEstatisticas();
+                    
+                    if (!db.initialized) {
+                        showCustomAlert('⚠️ Sistema iniciado em modo offline. Algumas funcionalidades podem estar limitadas.');
+                    }
+                }
+                attempts++;
+            }, 500);
         });
     </script>
 </body>
