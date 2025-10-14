@@ -1,361 +1,112 @@
-Text file: index.html
-Reading lines: 1-500 (file has 2640 lines)
-Latest content with line numbers:
-1	<!DOCTYPE html>
-2	<html lang="pt-BR">
-3	<head>
-4	    <meta charset="UTF-8">
-5	    <title>Gerenciador de Convidados</title>
-6	    <meta name="viewport" content="width=device-width, initial-scale=1">
-7	    <script src="https://cdn.tailwindcss.com"></script>
-8	    <style>
-9	        * {
-10	            box-sizing: border-box;
-11	        }
-12	        
-13	        body { 
-14	            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-15	            margin: 0;
-16	            padding: 0;
-17	            background-color: #f5f5f5;
-18	            line-height: 1.6;
-19	            min-height: 100vh;
-20	            overflow-x: hidden;
-21	        }
-22	        
-23	        /* Menu Lateral */
-24	        .sidebar {
-25	            position: fixed;
-26	            left: 0;
-27	            top: 0;
-28	            width: 300px;
-29	            height: 100vh;
-30	            background: linear-gradient(180deg, #1e40af 0%, #1e3a8a 100%);
-31	            box-shadow: 4px 0 20px rgba(0,0,0,0.15);
-32	            z-index: 1000;
-33	            overflow-y: auto;
-34	            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-35	            transform: translateX(0);
-36	        }
-37	        
-38	        .sidebar.collapsed {
-39	            transform: translateX(-100%);
-40	        }
-41	        
-42	        .sidebar-header {
-43	            padding: 30px 25px;
-44	            border-bottom: 1px solid rgba(255,255,255,0.15);
-45	            text-align: center;
-46	            background: rgba(0,0,0,0.1);
-47	        }
-48	        
-49	        .sidebar-title {
-50	            color: white;
-51	            font-size: 1.6rem;
-52	            font-weight: 700;
-53	            margin: 0;
-54	            text-shadow: 0 2px 4px rgba(0,0,0,0.3);
-55	            letter-spacing: -0.02em;
-56	        }
-57	        
-58	        .sidebar-subtitle {
-59	            color: rgba(255,255,255,0.8);
-60	            font-size: 0.875rem;
-61	            margin-top: 8px;
-62	            font-weight: 400;
-63	        }
-64	        
-65	        .sidebar-nav {
-66	            padding: 25px 0;
-67	        }
-68	        
-69	        .nav-item {
-70	            display: flex;
-71	            align-items: center;
-72	            padding: 18px 25px;
-73	            color: rgba(255,255,255,0.9);
-74	            text-decoration: none;
-75	            cursor: pointer;
-76	            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-77	            border-left: 4px solid transparent;
-78	            font-weight: 500;
-79	            position: relative;
-80	            font-size: 0.95rem;
-81	        }
-82	        
-83	        .nav-item:hover {
-84	            background: rgba(255,255,255,0.12);
-85	            color: white;
-86	            border-left-color: rgba(255,255,255,0.4);
-87	            transform: translateX(4px);
-88	        }
-89	        
-90	        .nav-item.active {
-91	            background: rgba(255,255,255,0.2);
-92	            color: white;
-93	            border-left-color: #fbbf24;
-94	            font-weight: 600;
-95	            box-shadow: inset 0 0 20px rgba(255,255,255,0.1);
-96	        }
-97	        
-98	        .nav-item.protected::after {
-99	            content: '🔒';
-100	            position: absolute;
-101	            right: 20px;
-102	            top: 50%;
-103	            transform: translateY(-50%);
-104	            font-size: 14px;
-105	            opacity: 0.8;
-106	        }
-107	        
-108	        .nav-icon {
-109	            margin-right: 15px;
-110	            font-size: 1.2rem;
-111	            width: 24px;
-112	            text-align: center;
-113	        }
-114	        
-115	        .sidebar-footer {
-116	            position: absolute;
-117	            bottom: 0;
-118	            left: 0;
-119	            right: 0;
-120	            padding: 20px 25px;
-121	            border-top: 1px solid rgba(255,255,255,0.15);
-122	            text-align: center;
-123	            background: rgba(0,0,0,0.1);
-124	        }
-125	        
-126	        .sidebar-footer .db-status {
-127	            position: static;
-128	            display: inline-block;
-129	            background: rgba(255,255,255,0.15);
-130	            color: white;
-131	            border: 1px solid rgba(255,255,255,0.3);
-132	            font-size: 11px;
-133	            padding: 8px 12px;
-134	            border-radius: 6px;
-135	            font-weight: 500;
-136	        }
-137	        
-138	        /* Overlay para fechar menu em mobile */
-139	        .sidebar-overlay {
-140	            position: fixed;
-141	            top: 0;
-142	            left: 0;
-143	            width: 100%;
-144	            height: 100%;
-145	            background: rgba(0,0,0,0.5);
-146	            z-index: 999;
-147	            opacity: 0;
-148	            visibility: hidden;
-149	            transition: all 0.3s ease;
-150	        }
-151	        
-152	        .sidebar-overlay.show {
-153	            opacity: 1;
-154	            visibility: visible;
-155	        }
-156	        
-157	        /* Toggle do menu para mobile */
-158	        .menu-toggle {
-159	            display: none;
-160	            position: fixed;
-161	            top: 20px;
-162	            left: 20px;
-163	            z-index: 1001;
-164	            background: #1e40af;
-165	            color: white;
-166	            border: none;
-167	            padding: 14px;
-168	            border-radius: 12px;
-169	            font-size: 18px;
-170	            cursor: pointer;
-171	            box-shadow: 0 4px 15px rgba(30, 64, 175, 0.3);
-172	            transition: all 0.3s ease;
-173	        }
-174	        
-175	        .menu-toggle:hover {
-176	            background: #1e3a8a;
-177	            transform: scale(1.05);
-178	        }
-179	        
-180	        /* Ajuste do conteúdo principal */
-181	        .main-content {
-182	            margin-left: 300px;
-183	            min-height: 100vh;
-184	            transition: margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-185	            padding: 25px;
-186	        }
-187	        
-188	        .main-content.expanded {
-189	            margin-left: 0;
-190	        }
-191	        
-192	        .container {
-193	            max-width: 1400px;
-194	            margin: 0 auto;
-195	            background: white;
-196	            padding: 35px;
-197	            border-radius: 20px;
-198	            box-shadow: 0 8px 30px rgba(0,0,0,0.12);
-199	            min-height: calc(100vh - 50px);
-200	            backdrop-filter: blur(10px);
-201	        }
-202	        
-203	        h1 { 
-204	            text-align: center; 
-205	            color: #1e293b;
-206	            margin-bottom: 35px;
-207	            font-size: 2.5rem;
-208	            font-weight: 700;
-209	            letter-spacing: -0.02em;
-210	        }
-211	        
-212	        h2 {
-213	            color: #1e40af;
-214	            border-bottom: 3px solid #1e40af;
-215	            padding-bottom: 12px;
-216	            margin-bottom: 30px;
-217	            font-weight: 600;
-218	            font-size: 1.8rem;
-219	        }
-220	        
-221	        .stats { 
-222	            display: grid;
-223	            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-224	            gap: 20px;
-225	            margin: 25px 0;
-226	        }
-227	        
-228	        .stats div { 
-229	            font-size: 16px; 
-230	            padding: 20px;
-231	            background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
-232	            border-radius: 12px;
-233	            border-left: 5px solid #1e40af;
-234	            text-align: center;
-235	            transition: transform 0.2s ease;
-236	        }
-237	        
-238	        .stats div:hover {
-239	            transform: translateY(-2px);
-240	        }
-241	        
-242	        .stats div span {
-243	            font-weight: 700;
-244	            color: #1e40af;
-245	            display: block;
-246	            font-size: 2rem;
-247	            margin-top: 8px;
-248	            line-height: 1;
-249	        }
-250	        
-251	        .actions { 
-252	            margin: 25px 0; 
-253	            display: flex; 
-254	            gap: 12px; 
-255	            flex-wrap: wrap;
-256	            align-items: center;
-257	            justify-content: center;
-258	        }
-259	        
-260	        .search-section {
-261	            margin: 25px 0;
-262	            padding: 20px;
-263	            background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
-264	            border-radius: 12px;
-265	            border-left: 5px solid #1e40af;
-266	        }
-267	        
-268	        .search-section h3 {
-269	            margin: 0 0 15px 0;
-270	            color: #1e3a8a;
-271	            font-weight: 600;
-272	        }
-273	        
-274	        input[type="text"], input[type="file"], input[type="password"], textarea, select { 
-275	            padding: 14px 16px; 
-276	            border: 2px solid #e2e8f0;
-277	            border-radius: 10px;
-278	            font-size: 15px;
-279	            transition: all 0.3s ease;
-280	            background: white;
-281	            width: 100%;
-282	        }
-283	        
-284	        input[type="text"]:focus, input[type="password"]:focus, textarea:focus, select:focus {
-285	            border-color: #1e40af;
-286	            outline: none;
-287	            box-shadow: 0 0 0 3px rgba(30, 64, 175, 0.1);
-288	            transform: translateY(-1px);
-289	        }
-290	        
-291	        button { 
-292	            padding: 14px 20px; 
-293	            cursor: pointer;
-294	            border: none;
-295	            border-radius: 10px;
-296	            background: #1e40af;
-297	            color: white;
-298	            font-weight: 600;
-299	            transition: all 0.3s ease;
-300	            font-size: 14px;
-301	            box-shadow: 0 2px 8px rgba(30, 64, 175, 0.2);
-302	        }
-303	        
-304	        button:hover {
-305	            background: #1e3a8a;
-306	            transform: translateY(-2px);
-307	            box-shadow: 0 4px 12px rgba(30, 64, 175, 0.3);
-308	        }
-309	        
-310	        button:active {
-311	            transform: translateY(0);
-312	        }
-313	        
-314	        button:disabled {
-315	            background: #94a3b8;
-316	            cursor: not-allowed;
-317	            transform: none;
-318	            box-shadow: none;
-319	        }
-320	        
-321	        button.danger {
-322	            background: #dc2626;
-323	        }
-324	        
-325	        button.danger:hover {
-326	            background: #b91c1c;
-327	        }
-328	        
-329	        button.success {
-330	            background: #16a34a;
-331	        }
-332	        
-333	        button.success:hover {
-334	            background: #15803d;
-335	        }
-336	        
-337	        button.warning {
-338	            background: #f59e0b;
-339	            color: #92400e;
-340	        }
-341	        
-342	        button.warning:hover {
-343	            background: #d97706;
-344	            color: white;
-345	        }
-346	        
-347	        /* Páginas */
-348	        .page-content {
-349	            display: none;
-350	            animation: fadeIn 0.3s ease;
-351	        }
-352	        
-353	        .page-content.active {
-354	            display: block;
-355	        }
-356	        
-357	        @keyframes fadeIn {
-358	(Content truncated due to size limit. Use page ranges or line ranges to read remaining content)
+
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>IA Geradora de Arquivos</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@xenova/transformers"></script>
+</head>
+<body class="bg-gray-100 text-gray-800">
+  <div class="container max-w-2xl mx-auto p-4">
+    <h1 class="text-3xl font-bold mb-6 text-center">IA Geradora de Arquivos</h1>
+
+    <div class="bg-white p-6 rounded shadow-md">
+      <label class="block mb-2 font-semibold">Tipo de Arquivo:</label>
+      <select id="fileType" class="w-full p-2 border rounded mb-4">
+        <option value="txt">Texto (.txt)</option>
+        <option value="html">HTML (.html)</option>
+        <option value="js">JavaScript (.js)</option>
+        <option value="py">Python (.py)</option>
+        <option value="json">JSON (.json)</option>
+      </select>
+
+      <label class="block mb-2 font-semibold">Modelo de IA:</label>
+      <select id="modelSelect" class="w-full p-2 border rounded mb-4">
+        <option value="Xenova/codegen-350M-mono">Xenova/codegen-350M-mono</option>
+        <option value="Xenova/gpt2">Xenova/gpt2</option>
+        <option value="Xenova/bert-base-uncased">Xenova/bert-base-uncased</option>
+      </select>
+
+      <label class="block mb-2 font-semibold">Descrição do Conteúdo:</label>
+      <textarea id="description" rows="5" class="w-full p-2 border rounded mb-4" placeholder="Descreva o que deseja que a IA gere..."></textarea>
+
+      <button onclick="generateFile()" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 w-full sm:w-auto">Gerar Arquivo</button>
+    </div>
+
+    <div id="resultSection" class="mt-6 hidden">
+      <h2 class="text-xl font-semibold mb-2">Conteúdo Gerado:</h2>
+      <pre id="fileContent" class="bg-gray-200 p-4 rounded overflow-auto whitespace-pre-wrap"></pre>
+      <div class="flex flex-col sm:flex-row gap-2 mt-4">
+        <button onclick="downloadFile()" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">Baixar Arquivo</button>
+        <button onclick="showHistory()" class="bg-gray-600 text-white px-4 py-2 rounded hover:bg-gray-700">Ver Histórico</button>
+      </div>
+    </div>
+
+    <div id="historySection" class="mt-6 hidden">
+      <h2 class="text-xl font-semibold mb-2">Histórico:</h2>
+      <ul id="historyList" class="space-y-2"></ul>
+    </div>
+  </div>
+
+  <script>
+    async function generateFile() {
+      const type = document.getElementById('fileType').value;
+      const description = document.getElementById('description').value.trim();
+      const modelName = document.getElementById('modelSelect').value;
+      const resultSection = document.getElementById('resultSection');
+      const fileContent = document.getElementById('fileContent');
+
+      if (!description) {
+        alert('Por favor, insira uma descrição.');
+        return;
+      }
+
+      fileContent.textContent = 'Gerando conteúdo com IA usando ' + modelName + '...';
+
+      const generator = await window.Transformers.pipeline('text-generation', modelName);
+      const output = await generator(description, { max_new_tokens: 200 });
+      const generatedText = output[0].generated_text;
+
+      fileContent.textContent = generatedText;
+      resultSection.classList.remove('hidden');
+
+      saveToHistory(type, description, generatedText);
+    }
+
+    function downloadFile() {
+      const type = document.getElementById('fileType').value;
+      const content = document.getElementById('fileContent').textContent;
+      const blob = new Blob([content], { type: 'text/plain' });
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      link.download = `arquivo-gerado.${type}`;
+      link.click();
+    }
+
+    function saveToHistory(type, description, content) {
+      const history = JSON.parse(localStorage.getItem('fileHistory') || '[]');
+      history.push({ type, description, content, date: new Date().toISOString() });
+      localStorage.setItem('fileHistory', JSON.stringify(history));
+    }
+
+    function showHistory() {
+      const historySection = document.getElementById('historySection');
+      const historyList = document.getElementById('historyList');
+      const history = JSON.parse(localStorage.getItem('fileHistory') || '[]');
+
+      historyList.innerHTML = '';
+      history.forEach((item) => {
+        const li = document.createElement('li');
+        li.className = 'bg-white p-4 rounded shadow';
+        li.innerHTML = `<strong>${item.type}</strong> - ${new Date(item.date).toLocaleString()}<br>
+                        <em>${item.description}</em><pre class="mt-2 bg-gray-100 p-2 rounded whitespace-pre-wrap">${item.content}</pre>`;
+        historyList.appendChild(li);
+      });
+
+      historySection.classList.remove('hidden');
+    }
+  </script>
+</body>
+</html>
