@@ -1,1945 +1,361 @@
-<!DOCTYPE html>
-<html lang="pt-BR">
-<head>
-    <meta charset="UTF-8">
-    <title>Gerenciador de Convidados</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <style>
-        * {
-            box-sizing: border-box;
-        }
-        
-        body { 
-            font-family: Arial, sans-serif; 
-            margin: 0;
-            padding: 20px;
-            background-color: #f5f5f5;
-            line-height: 1.6;
-            min-height: 100vh;
-            padding-bottom: 100px;
-        }
-        
-        .container {
-            max-width: 1400px;
-            margin: 0 auto;
-            background: white;
-            padding: 20px;
-            border-radius: 10px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-            min-height: calc(100vh - 40px);
-        }
-        
-        h1 { 
-            text-align: center; 
-            color: #333;
-            margin-bottom: 30px;
-            font-size: 2.5em;
-        }
-        
-        h2 {
-            color: #007bff;
-            border-bottom: 2px solid #007bff;
-            padding-bottom: 10px;
-            margin-bottom: 25px;
-        }
-        
-        .stats { 
-            display: flex; 
-            justify-content: space-around; 
-            margin: 20px 0; 
-            flex-wrap: wrap;
-            gap: 15px;
-        }
-        
-        .stats div { 
-            font-size: 18px; 
-            padding: 15px;
-            background: #f8f9fa;
-            border-radius: 8px;
-            border-left: 4px solid #007bff;
-            min-width: 150px;
-            text-align: center;
-            flex: 1;
-        }
-        
-        .stats div span {
-            font-weight: bold;
-            color: #007bff;
-            display: block;
-            font-size: 1.5em;
-            margin-top: 5px;
-        }
-        
-        .actions { 
-            margin: 20px 0; 
-            display: flex; 
-            gap: 10px; 
-            flex-wrap: wrap;
-            align-items: center;
-            justify-content: center;
-        }
-        
-        .search-section {
-            margin: 20px 0;
-            padding: 15px;
-            background: #e3f2fd;
-            border-radius: 8px;
-            border-left: 4px solid #007bff;
-        }
-        
-        .search-section h3 {
-            margin: 0 0 10px 0;
-            color: #1976d2;
-        }
-        
-        .welcome-message {
-            text-align: center;
-            padding: 40px;
-            background: #f8f9fa;
-            border-radius: 8px;
-            border: 2px dashed #007bff;
-            margin: 20px 0;
-        }
-        
-        .welcome-message h3 {
-            color: #007bff;
-            margin-bottom: 10px;
-        }
-        
-        .welcome-message p {
-            color: #6c757d;
-            margin: 0;
-        }
-        
-        input[type="text"], input[type="file"], input[type="password"] { 
-            padding: 12px; 
-            border: 2px solid #ddd;
-            border-radius: 5px;
-            font-size: 14px;
-            transition: border-color 0.3s;
-        }
-        
-        input[type="text"]:focus, input[type="password"]:focus {
-            border-color: #007bff;
-            outline: none;
-        }
-        
-        input[type="text"] {
-            width: 100%;
-            max-width: 400px;
-        }
-        
-        button { 
-            padding: 12px 18px; 
-            cursor: pointer;
-            border: none;
-            border-radius: 5px;
-            background: #007bff;
-            color: white;
-            font-weight: bold;
-            transition: all 0.3s;
-            font-size: 14px;
-        }
-        
-        button:hover {
-            background: #0056b3;
-            transform: translateY(-2px);
-        }
-        
-        button:disabled {
-            background: #6c757d;
-            cursor: not-allowed;
-            transform: none;
-        }
-        
-        button.danger {
-            background: #dc3545;
-        }
-        
-        button.danger:hover {
-            background: #c82333;
-        }
-        
-        button.success {
-            background: #28a745;
-        }
-        
-        button.success:hover {
-            background: #218838;
-        }
-        
-        button.warning {
-            background: #ffc107;
-            color: #212529;
-        }
-        
-        button.warning:hover {
-            background: #e0a800;
-        }
-        
-        button.primary {
-            background: #007bff;
-        }
-        
-        button.primary:hover {
-            background: #0056b3;
-        }
-        
-        /* Páginas */
-        .page-content {
-            display: none;
-        }
-        
-        .page-content.active {
-            display: block;
-        }
-        
-        /* Navegação */
-        .nav-tabs {
-            display: flex;
-            justify-content: center;
-            margin-bottom: 30px;
-            border-bottom: 2px solid #ddd;
-            flex-wrap: wrap;
-        }
-        
-        .nav-tab {
-            background: #f8f9fa;
-            border: 1px solid #ddd;
-            border-bottom: none;
-            padding: 12px 24px;
-            cursor: pointer;
-            margin: 0 2px;
-            border-radius: 8px 8px 0 0;
-            transition: all 0.3s;
-            font-weight: bold;
-        }
-        
-        .nav-tab.active {
-            background: #007bff;
-            color: white;
-        }
-        
-        .nav-tab:hover:not(.active) {
-            background: #e9ecef;
-        }
-        
-        .nav-tab.locked {
-            background: #6c757d;
-            color: white;
-            position: relative;
-        }
-        
-        .nav-tab.locked::after {
-            content: ' 🔒';
-        }
-        
-        .table-container {
-            background: white;
-            border-radius: 8px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-            overflow: hidden;
-            margin-top: 20px;
-        }
-        
-        .table-wrapper {
-            overflow-x: auto;
-            max-height: 60vh;
-            overflow-y: auto;
-        }
-        
-        table { 
-            width: 100%; 
-            border-collapse: collapse; 
-            background: white;
-            min-width: 800px;
-        }
-        
-        th, td { 
-            border: 1px solid #ddd; 
-            padding: 12px; 
-            text-align: left; 
-            vertical-align: middle;
-        }
-        
-        th { 
-            background-color: #007bff;
-            color: white;
-            font-weight: bold;
-            position: sticky;
-            top: 0;
-            z-index: 10;
-        }
-        
-        tr:nth-child(even) {
-            background-color: #f8f9fa;
-        }
-        
-        tr:hover {
-            background-color: #e3f2fd;
-        }
-        
-        .status-badge {
-            padding: 6px 12px;
-            border-radius: 4px;
-            font-size: 12px;
-            font-weight: bold;
-            text-transform: uppercase;
-            display: inline-block;
-            min-width: 80px;
-            text-align: center;
-        }
-        
-        .status-confirmado {
-            background: #d4edda;
-            color: #155724;
-            border: 1px solid #c3e6cb;
-        }
-        
-        .status-pendente {
-            background: #fff3cd;
-            color: #856404;
-            border: 1px solid #ffeaa7;
-        }
-        
-        .status-cancelado {
-            background: #f8d7da;
-            color: #721c24;
-            border: 1px solid #f5c6cb;
-        }
-        
-        .modal {
-            display: none;
-            position: fixed;
-            z-index: 1000;
-            left: 0;
-            top: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0,0,0,0.5);
-            overflow-y: auto;
-        }
-        
-        .modal-content {
-            background-color: white;
-            margin: 5% auto;
-            padding: 20px;
-            border-radius: 10px;
-            width: 90%;
-            max-width: 500px;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
-            max-height: 90vh;
-            overflow-y: auto;
-        }
-        
-        .modal-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 20px;
-            padding-bottom: 10px;
-            border-bottom: 2px solid #007bff;
-        }
-        
-        .close {
-            color: #aaa;
-            font-size: 28px;
-            font-weight: bold;
-            cursor: pointer;
-        }
-        
-        .close:hover {
-            color: #000;
-        }
-        
-        .form-group {
-            margin-bottom: 15px;
-        }
-        
-        .form-group label {
-            display: block;
-            margin-bottom: 5px;
-            font-weight: bold;
-        }
-        
-        .form-group input, .form-group select {
-            width: 100%;
-            padding: 12px;
-            border: 2px solid #ddd;
-            border-radius: 5px;
-        }
-        
-        .alert {
-            padding: 15px;
-            margin: 10px 0;
-            border-radius: 5px;
-            display: none;
-            position: relative;
-        }
-        
-        .alert-success {
-            background: #d4edda;
-            color: #155724;
-            border: 1px solid #c3e6cb;
-        }
-        
-        .alert-error {
-            background: #f8d7da;
-            color: #721c24;
-            border: 1px solid #f5c6cb;
-        }
-        
-        .db-status {
-            position: fixed;
-            top: 10px;
-            right: 10px;
-            padding: 8px 12px;
-            border-radius: 4px;
-            font-size: 12px;
-            font-weight: bold;
-            z-index: 1001;
-        }
-        
-        .db-connected {
-            background: #d4edda;
-            color: #155724;
-            border: 1px solid #c3e6cb;
-        }
-        
-        .db-error {
-            background: #f8d7da;
-            color: #721c24;
-            border: 1px solid #f5c6cb;
-        }
-        
-        .action-buttons {
-            display: flex;
-            gap: 5px;
-            flex-wrap: wrap;
-        }
-        
-        .action-buttons button {
-            padding: 6px 10px;
-            font-size: 12px;
-            min-width: 35px;
-        }
-        
-        /* Selecionados */
-        .selected-section {
-            background: #f8f9fa;
-            border: 2px solid #007bff;
-            border-radius: 8px;
-            padding: 20px;
-            margin: 20px 0;
-        }
-        
-        .selected-item {
-            background: white;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            padding: 10px;
-            margin: 5px 0;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        
-        /* Estatísticas por representante */
-        .stats-representantes {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 15px;
-            margin: 20px 0;
-        }
-        
-        .stat-representante {
-            background: #f8f9fa;
-            border-left: 4px solid #007bff;
-            padding: 15px;
-            border-radius: 8px;
-        }
-        
-        @media (max-width: 768px) {
-            .stats {
-                flex-direction: column;
-            }
-            
-            .actions {
-                flex-direction: column;
-                align-items: stretch;
-            }
-            
-            input[type="text"] {
-                width: 100%;
-                max-width: none;
-            }
-            
-            table {
-                font-size: 14px;
-                min-width: 600px;
-            }
-            
-            th, td {
-                padding: 8px;
-            }
-            
-            .container {
-                padding: 10px;
-                margin: 10px;
-            }
-            
-            h1 {
-                font-size: 2em;
-            }
-            
-            .nav-tabs {
-                justify-content: flex-start;
-                overflow-x: auto;
-            }
-            
-            .nav-tab {
-                white-space: nowrap;
-                flex-shrink: 0;
-            }
-        }
-        
-        .table-wrapper::-webkit-scrollbar {
-            width: 8px;
-            height: 8px;
-        }
-        
-        .table-wrapper::-webkit-scrollbar-track {
-            background: #f1f1f1;
-            border-radius: 4px;
-        }
-        
-        .table-wrapper::-webkit-scrollbar-thumb {
-            background: #007bff;
-            border-radius: 4px;
-        }
-        
-        .table-wrapper::-webkit-scrollbar-thumb:hover {
-            background: #0056b3;
-        }
-    </style>
-</head>
-<body>
-    <!-- Indicador de Status do Banco de Dados -->
-    <div id="dbStatus" class="db-status db-connected">🔒 DB Conectado</div>
-
-    <div class="container">
-        <h1>🎉 Gerenciador de Convidados</h1>
-
-        <div id="alertContainer"></div>
-
-        <!-- Navegação por Abas -->
-        <div class="nav-tabs">
-            <div class="nav-tab active" onclick="mostrarPagina('lista')">🔍 Lista de Convidados</div>
-            <div class="nav-tab locked" onclick="verificarAcessoPagina('gerenciamento')">⚙️ Gerenciar 🔒</div>
-            <div class="nav-tab locked" onclick="verificarAcessoPagina('relatorio')">📊 Relatório 🔒</div>
-        </div>
-
-        <!-- ==================== PÁGINA LISTA DE CONVIDADOS ==================== -->
-        <div id="lista-page" class="page-content active">
-            <h2>🔍 Lista de Convidados</h2>
-            
-            <!-- Seção de Busca -->
-            <div class="search-section">
-                <h3>🔍 Buscar Convidados</h3>
-                <input type="text" id="busca-lista" placeholder="🔍 Digite o nome do representante para buscar..." onkeyup="buscarConvidados()">
-                <p style="margin: 10px 0 0 0; color: #6c757d; font-size: 14px;">
-                    💡 Digite o nome do representante para ver os convidados disponíveis
-                </p>
-            </div>
-
-            <!-- Mensagem de Boas-vindas -->
-            <div id="welcome-message" class="welcome-message">
-                <h3>👋 Bem-vindo ao Sistema de Convidados!</h3>
-                <p>🔍 Use a barra de busca acima para encontrar convidados por representante</p>
-                <p>✅ Selecione os convidados desejados e confirme ou cancele conforme necessário</p>
-            </div>
-
-            <!-- Resultados da Busca -->
-            <div id="search-results" class="table-container" style="display: none;">
-                <div class="table-wrapper">
-                    <table id="tabela-busca">
-                        <thead>
-                            <tr>
-                                <th>Convidado</th>
-                                <th>Representante</th>
-                                <th>Status</th>
-                                <th>Selecionar</th>
-                            </tr>
-                        </thead>
-                        <tbody></tbody>
-                    </table>
-                </div>
-            </div>
-
-            <!-- Seção de Convidados Selecionados -->
-            <div id="selected-section" class="selected-section" style="display: none;">
-                <h3>📋 Convidados Selecionados</h3>
-                <div id="selected-list"></div>
-                <div class="actions">
-                    <button onclick="confirmarConvidados()" class="success">✅ Confirmar Convidados</button>
-                    <button onclick="cancelarSelecao()" class="danger">❌ Cancelar Seleção</button>
-                </div>
-            </div>
-        </div>
-
-        <!-- ==================== PÁGINA GERENCIAMENTO ==================== -->
-        <div id="gerenciamento-page" class="page-content">
-            <h2>⚙️ Gerenciamento de Convidados</h2>
-            
-            <div class="stats">
-                <div>📊 Total<span id="total">0</span></div>
-                <div>✅ Confirmados<span id="confirmados">0</span></div>
-                <div>⏳ Pendentes<span id="pendentes">0</span></div>
-                <div>❌ Cancelados<span id="cancelados">0</span></div>
-                <div>📈 Taxa<span id="taxa">0%</span></div>
-            </div>
-
-            <div class="actions">
-                <button onclick="abrirModalAdicionar()">➕ Adicionar Convidado</button>
-                <input type="file" id="arquivo" accept=".csv,.txt" onchange="importarArquivo()" style="display: none;">
-                <button onclick="document.getElementById('arquivo').click()">📥 Importar Lista</button>
-                <button onclick="exportarCSV()">📤 Exportar CSV</button>
-                <button onclick="exportarBackup()">💾 Backup</button>
-                <input type="file" id="arquivoBackup" accept=".json" onchange="importarBackup()" style="display: none;">
-                <button onclick="document.getElementById('arquivoBackup').click()">📂 Restaurar</button>
-                <button onclick="abrirModalSenha()">🔒 Alterar Senha</button>
-                <button onclick="sincronizarBanco()" class="success">🔄 Sincronizar</button>
-            </div>
-
-            <!-- Seção de Busca -->
-            <div class="search-section">
-                <h3>🔍 Filtrar Registros</h3>
-                <input type="text" id="busca-gerenciamento" placeholder="🔍 Buscar por representante, convidado ou status..." onkeyup="filtrarTabelaGerenciamento()">
-            </div>
-
-            <!-- Tabela de Gerenciamento -->
-            <div class="table-container">
-                <div class="table-wrapper">
-                    <table id="tabela-gerenciamento">
-                        <thead>
-                            <tr>
-                                <th>ID</th>
-                                <th>Representante</th>
-                                <th>Convidado</th>
-                                <th>Status</th>
-                                <th>Data</th>
-                                <th>Ações</th>
-                            </tr>
-                        </thead>
-                        <tbody></tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-
-        <!-- ==================== PÁGINA RELATÓRIO ==================== -->
-        <div id="relatorio-page" class="page-content">
-            <h2>📊 Relatório de Confirmações</h2>
-            
-            <div class="actions">
-                <button onclick="exportarRelatorio()">📤 Exportar Relatório</button>
-                <button onclick="abrirModalSenha()">🔒 Alterar Senha</button>
-            </div>
-
-            <!-- Estatísticas por Representante -->
-            <div class="stats-representantes" id="stats-representantes">
-                <!-- Estatísticas serão inseridas aqui -->
-            </div>
-
-            <!-- Seção de Busca para Relatório -->
-            <div class="search-section">
-                <h3>🔍 Filtrar Relatório</h3>
-                <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-bottom: 15px;">
-                    <input type="text" id="busca-relatorio" placeholder="🔍 Buscar..." onkeyup="filtrarRelatorio()">
-                    <select id="filtro-representante" onchange="filtrarRelatorio()">
-                        <option value="">Todos os Representantes</option>
-                    </select>
-                    <select id="filtro-status" onchange="filtrarRelatorio()">
-                        <option value="">Todos os Status</option>
-                        <option value="Confirmado">Confirmado</option>
-                        <option value="Pendente">Pendente</option>
-                        <option value="Cancelado">Cancelado</option>
-                    </select>
-                </div>
-            </div>
-
-            <!-- Tabela de Relatório -->
-            <div class="table-container">
-                <div class="table-wrapper">
-                    <table id="tabela-relatorio">
-                        <thead>
-                            <tr>
-                                <th>Representante</th>
-                                <th>Convidado</th>
-                                <th>Status</th>
-                                <th>Data</th>
-                            </tr>
-                        </thead>
-                        <tbody></tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Modal para adicionar convidado -->
-    <div id="modalAdicionar" class="modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h2>➕ Adicionar Convidado</h2>
-                <span class="close" onclick="fecharModal('modalAdicionar')">&times;</span>
-            </div>
-            <form onsubmit="adicionarConvidado(event)">
-                <div class="form-group">
-                    <label for="novoRepresentante">Representante:</label>
-                    <input type="text" id="novoRepresentante" required>
-                </div>
-                <div class="form-group">
-                    <label for="novoConvidado">Convidado:</label>
-                    <input type="text" id="novoConvidado" required>
-                </div>
-                <div class="actions">
-                    <button type="submit" class="success">✅ Adicionar</button>
-                    <button type="button" onclick="fecharModal('modalAdicionar')">❌ Cancelar</button>
-                </div>
-            </form>
-        </div>
-    </div>
-
-    <!-- Modal para alterar senha -->
-    <div id="modalSenha" class="modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h2>🔒 Alterar Senha</h2>
-                <span class="close" onclick="fecharModal('modalSenha')">&times;</span>
-            </div>
-            <form onsubmit="alterarSenha(event)">
-                <div class="form-group">
-                    <label for="senhaAtual">Senha Atual:</label>
-                    <input type="password" id="senhaAtual" required>
-                </div>
-                <div class="form-group">
-                    <label for="novaSenha">Nova Senha:</label>
-                    <input type="password" id="novaSenha" required minlength="3">
-                </div>
-                <div class="form-group">
-                    <label for="confirmarSenha">Confirmar Nova Senha:</label>
-                    <input type="password" id="confirmarSenha" required minlength="3">
-                </div>
-                <div class="actions">
-                    <button type="submit" class="success">🔄 Alterar</button>
-                    <button type="button" onclick="fecharModal('modalSenha')">❌ Cancelar</button>
-                </div>
-            </form>
-        </div>
-    </div>
-
-    <!-- Modal de confirmação -->
-    <div id="modalConfirmar" class="modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h2>⚠️ Confirmação</h2>
-                <span class="close" onclick="fecharModal('modalConfirmar')">&times;</span>
-            </div>
-            <p id="mensagemConfirmacao"></p>
-            <div class="actions">
-                <button id="btnConfirmar" class="danger">✅ Confirmar</button>
-                <button onclick="fecharModal('modalConfirmar')">❌ Cancelar</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Modal de autenticação -->
-    <div id="modalAuth" class="modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h2>🔒 Acesso Restrito</h2>
-                <span class="close" onclick="fecharModal('modalAuth')">&times;</span>
-            </div>
-            <p>Digite a senha para acessar esta seção:</p>
-            <div class="form-group">
-                <input type="password" id="senhaAuth" placeholder="Digite a senha..." onkeypress="verificarEnterAuth(event)">
-            </div>
-            <div class="actions">
-                <button onclick="autenticarAcesso()" class="primary">🔓 Acessar</button>
-                <button onclick="fecharModal('modalAuth')">❌ Cancelar</button>
-            </div>
-        </div>
-    </div>
-
-    <script>
-        // ==================== SISTEMA DE CRIPTOGRAFIA ====================
-        class SimpleCrypto {
-            static encrypt(text, key) {
-                let encrypted = '';
-                for (let i = 0; i < text.length; i++) {
-                    encrypted += String.fromCharCode(text.charCodeAt(i) ^ key.charCodeAt(i % key.length));
-                }
-                return btoa(encrypted);
-            }
-            
-            static decrypt(encryptedText, key) {
-                try {
-                    const encrypted = atob(encryptedText);
-                    let decrypted = '';
-                    for (let i = 0; i < encrypted.length; i++) {
-                        decrypted += String.fromCharCode(encrypted.charCodeAt(i) ^ key.charCodeAt(i % key.length));
-                    }
-                    return decrypted;
-                } catch (e) {
-                    throw new Error('Falha na descriptografia');
-                }
-            }
-        }
-
-        // ==================== BANCO DE DADOS CRIPTOGRAFADO ====================
-        class DatabaseManager {
-            constructor() {
-                this.dbKey = 'GerenciadorConvidados2024!@#';
-                this.dbName = 'convidados_encrypted_db';
-                this.connected = true;
-                this.lastSync = new Date();
-            }
-
-            async salvar(dados) {
-                try {
-                    const dadosComTimestamp = {
-                        ...dados,
-                        lastModified: new Date().toISOString(),
-                        version: '2.0'
-                    };
-                    
-                    const dadosJson = JSON.stringify(dadosComTimestamp);
-                    const dadosCriptografados = SimpleCrypto.encrypt(dadosJson, this.dbKey);
-                    
-                    localStorage.setItem(this.dbName, dadosCriptografados);
-                    localStorage.setItem(this.dbName + '_backup', dadosCriptografados);
-                    
-                    this.updateStatus(true);
-                    console.log('✅ Dados salvos e criptografados com sucesso');
-                    return true;
-                } catch (error) {
-                    console.error('❌ Erro ao salvar dados:', error);
-                    this.updateStatus(false);
-                    return false;
-                }
-            }
-
-            async carregar() {
-                try {
-                    const dadosCriptografados = localStorage.getItem(this.dbName);
-                    if (!dadosCriptografados) {
-                        console.log('ℹ️ Nenhum dado encontrado, iniciando novo banco');
-                        return null;
-                    }
-
-                    const dadosJson = SimpleCrypto.decrypt(dadosCriptografados, this.dbKey);
-                    const dados = JSON.parse(dadosJson);
-                    
-                    this.updateStatus(true);
-                    console.log('✅ Dados carregados e descriptografados com sucesso');
-                    return dados;
-                } catch (error) {
-                    console.error('❌ Erro ao carregar dados:', error);
-                    
-                    // Tentar backup
-                    try {
-                        const backup = localStorage.getItem(this.dbName + '_backup');
-                        if (backup) {
-                            const dadosJson = SimpleCrypto.decrypt(backup, this.dbKey);
-                            const dados = JSON.parse(dadosJson);
-                            console.log('⚠️ Dados carregados do backup');
-                            this.updateStatus(true);
-                            return dados;
-                        }
-                    } catch (backupError) {
-                        console.error('❌ Erro no backup também:', backupError);
-                    }
-                    
-                    this.updateStatus(false);
-                    return null;
-                }
-            }
-
-            async sincronizar() {
-                try {
-                    await new Promise(resolve => setTimeout(resolve, 1000));
-                    
-                    this.lastSync = new Date();
-                    this.updateStatus(true);
-                    
-                    return {
-                        success: true,
-                        message: 'Sincronização realizada com sucesso',
-                        timestamp: this.lastSync
-                    };
-                } catch (error) {
-                    console.error('❌ Erro na sincronização:', error);
-                    this.updateStatus(false);
-                    return {
-                        success: false,
-                        message: 'Erro na sincronização: ' + error.message
-                    };
-                }
-            }
-
-            updateStatus(connected) {
-                this.connected = connected;
-                const statusEl = document.getElementById('dbStatus');
-                
-                if (connected) {
-                    statusEl.textContent = '🔒 DB Conectado';
-                    statusEl.className = 'db-status db-connected';
-                } else {
-                    statusEl.textContent = '❌ DB Erro';
-                    statusEl.className = 'db-status db-error';
-                }
-            }
-
-            exportarBanco() {
-                try {
-                    const dadosCriptografados = localStorage.getItem(this.dbName);
-                    if (!dadosCriptografados) {
-                        throw new Error('Nenhum dado para exportar');
-                    }
-
-                    const dados = {
-                        database: dadosCriptografados,
-                        exported: new Date().toISOString(),
-                        version: '2.0'
-                    };
-
-                    return JSON.stringify(dados, null, 2);
-                } catch (error) {
-                    throw new Error('Erro ao exportar banco: ' + error.message);
-                }
-            }
-
-            async importarBanco(dadosExportados) {
-                try {
-                    const dados = JSON.parse(dadosExportados);
-                    
-                    if (!dados.database) {
-                        throw new Error('Formato de arquivo inválido');
-                    }
-
-                    // Verificar se os dados podem ser descriptografados
-                    const teste = SimpleCrypto.decrypt(dados.database, this.dbKey);
-                    JSON.parse(teste);
-
-                    localStorage.setItem(this.dbName, dados.database);
-                    localStorage.setItem(this.dbName + '_backup', dados.database);
-                    
-                    this.updateStatus(true);
-                    return true;
-                } catch (error) {
-                    console.error('❌ Erro ao importar banco:', error);
-                    this.updateStatus(false);
-                    throw new Error('Erro ao importar banco: ' + error.message);
-                }
-            }
-        }
-
-        // ==================== DADOS E CONFIGURAÇÕES ====================
-        let convidados = [];
-        let proximoId = 1;
-        let senhaAtual = 'admin123';
-        let convidadosSelecionados = [];
-        let paginaAtual = 'lista';
-        let paginaDestino = '';
-        
-        // Instância do gerenciador de banco
-        const db = new DatabaseManager();
-
-        // ==================== INICIALIZAÇÃO ====================
-        document.addEventListener('DOMContentLoaded', async function() {
-            await carregarDados();
-            atualizarTodasTabelas();
-            atualizarEstatisticas();
-            
-            // Mostrar mensagem de boas-vindas
-            mostrarAlerta('🎉 Sistema carregado com sucesso! Bem-vindo à Lista de Convidados.', 'success');
-            
-            // Auto-save a cada 30 segundos
-            setInterval(async () => {
-                await salvarDados();
-            }, 30000);
-        });
-
-        // ==================== NAVEGAÇÃO ENTRE PÁGINAS ====================
-        function mostrarPagina(pagina) {
-            // Limpar filtros da página atual
-            limparFiltros(paginaAtual);
-            
-            // Esconder todas as páginas
-            document.querySelectorAll('.page-content').forEach(page => {
-                page.classList.remove('active');
-            });
-            
-            // Remover active de todas as abas
-            document.querySelectorAll('.nav-tab').forEach(tab => {
-                tab.classList.remove('active');
-            });
-            
-            // Mostrar página selecionada
-            document.getElementById(pagina + '-page').classList.add('active');
-            
-            // Ativar aba correspondente
-            const tabs = document.querySelectorAll('.nav-tab');
-            if (pagina === 'lista') tabs[0].classList.add('active');
-            else if (pagina === 'gerenciamento') tabs[1].classList.add('active');
-            else if (pagina === 'relatorio') tabs[2].classList.add('active');
-            
-            paginaAtual = pagina;
-            
-            // Atualizar dados específicos da página
-            if (pagina === 'lista') {
-                mostrarMensagemInicial();
-            } else if (pagina === 'gerenciamento') {
-                atualizarTabelaGerenciamento();
-            } else if (pagina === 'relatorio') {
-                atualizarRelatorio();
-            }
-        }
-
-        function verificarAcessoPagina(pagina) {
-            paginaDestino = pagina;
-            document.getElementById('modalAuth').style.display = 'block';
-            document.getElementById('senhaAuth').focus();
-        }
-
-        function verificarEnterAuth(event) {
-            if (event.key === 'Enter') {
-                autenticarAcesso();
-            }
-        }
-
-        function autenticarAcesso() {
-            const senhaDigitada = document.getElementById('senhaAuth').value;
-            
-            if (senhaDigitada === senhaAtual) {
-                fecharModal('modalAuth');
-                document.getElementById('senhaAuth').value = '';
-                mostrarPagina(paginaDestino);
-                mostrarAlerta('✅ Acesso autorizado!', 'success');
-            } else {
-                mostrarAlerta('❌ Senha incorreta!', 'error');
-                document.getElementById('senhaAuth').value = '';
-                document.getElementById('senhaAuth').focus();
-            }
-        }
-
-        function limparFiltros(pagina) {
-            if (pagina === 'lista') {
-                document.getElementById('busca-lista').value = '';
-            } else if (pagina === 'gerenciamento') {
-                document.getElementById('busca-gerenciamento').value = '';
-            } else if (pagina === 'relatorio') {
-                document.getElementById('busca-relatorio').value = '';
-                document.getElementById('filtro-representante').value = '';
-                document.getElementById('filtro-status').value = '';
-            }
-        }
-
-        // ==================== PERSISTÊNCIA DE DADOS ====================
-        async function salvarDados() {
-            const dados = {
-                convidados,
-                proximoId,
-                senhaAtual,
-                dataUltimaModificacao: new Date().toISOString()
-            };
-            
-            const sucesso = await db.salvar(dados);
-            if (!sucesso) {
-                mostrarAlerta('⚠️ Erro ao salvar dados no banco!', 'error');
-            }
-        }
-
-        async function carregarDados() {
-            try {
-                const dados = await db.carregar();
-                if (dados) {
-                    convidados = dados.convidados || [];
-                    proximoId = dados.proximoId || 1;
-                    senhaAtual = dados.senhaAtual || 'admin123';
-                    console.log('📊 Dados carregados:', dados);
-                }
-            } catch (error) {
-                console.error('❌ Erro ao carregar dados:', error);
-                mostrarAlerta('⚠️ Erro ao carregar dados. Iniciando com dados limpos.', 'error');
-            }
-        }
-
-        // ==================== PÁGINA LISTA DE CONVIDADOS ====================
-        function mostrarMensagemInicial() {
-            document.getElementById('welcome-message').style.display = 'block';
-            document.getElementById('search-results').style.display = 'none';
-        }
-
-        function buscarConvidados() {
-            const termo = document.getElementById('busca-lista').value.toLowerCase().trim();
-            const welcomeMessage = document.getElementById('welcome-message');
-            const searchResults = document.getElementById('search-results');
-            const tbody = document.querySelector('#tabela-busca tbody');
-            
-            if (!termo) {
-                welcomeMessage.style.display = 'block';
-                searchResults.style.display = 'none';
-                return;
-            }
-            
-            welcomeMessage.style.display = 'none';
-            searchResults.style.display = 'block';
-            
-            const convidadosEncontrados = convidados.filter(c =>
-                c.representante.toLowerCase().includes(termo)
-            );
-            
-            tbody.innerHTML = '';
-            
-            if (convidadosEncontrados.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="4" style="text-align: center; color: #6c757d; padding: 40px;">📭 Nenhum convidado encontrado para este representante</td></tr>';
-                return;
-            }
-            
-            convidadosEncontrados.forEach(convidado => {
-                const isSelected = convidadosSelecionados.some(c => c.id === convidado.id);
-                const tr = document.createElement('tr');
-                tr.innerHTML = `
-                    <td>${escapeHtml(convidado.convidado)}</td>
-                    <td>${escapeHtml(convidado.representante)}</td>
-                    <td>
-                        <span class="status-badge status-${convidado.status.toLowerCase()}">
-                            ${getStatusIcon(convidado.status)} ${convidado.status}
-                        </span>
-                    </td>
-                    <td>
-                        <input type="checkbox" ${isSelected ? 'checked' : ''} onchange="toggleConvidado(${convidado.id})" style="transform: scale(1.2);">
-                    </td>
-                `;
-                tbody.appendChild(tr);
-            });
-        }
-
-        function getStatusIcon(status) {
-            switch(status.toLowerCase()) {
-                case 'confirmado': return '✅';
-                case 'pendente': return '⏳';
-                case 'cancelado': return '❌';
-                default: return '⏳';
-            }
-        }
-
-        function toggleConvidado(id) {
-            const convidado = convidados.find(c => c.id === id);
-            const index = convidadosSelecionados.findIndex(c => c.id === id);
-            
-            if (index === -1) {
-                convidadosSelecionados.push(convidado);
-            } else {
-                convidadosSelecionados.splice(index, 1);
-            }
-            
-            atualizarSelecionados();
-        }
-
-        function atualizarSelecionados() {
-            const section = document.getElementById('selected-section');
-            const list = document.getElementById('selected-list');
-            
-            if (convidadosSelecionados.length === 0) {
-                section.style.display = 'none';
-                return;
-            }
-            
-            section.style.display = 'block';
-            let html = '';
-            
-            convidadosSelecionados.forEach(convidado => {
-                html += `
-                    <div class="selected-item">
-                        <span>${escapeHtml(convidado.convidado)} (${escapeHtml(convidado.representante)})</span>
-                        <button onclick="removerSelecionado(${convidado.id})" class="danger" style="padding: 5px 10px;">❌</button>
-                    </div>
-                `;
-            });
-            
-            list.innerHTML = html;
-        }
-
-        function removerSelecionado(id) {
-            const index = convidadosSelecionados.findIndex(c => c.id === id);
-            if (index !== -1) {
-                convidadosSelecionados.splice(index, 1);
-                atualizarSelecionados();
-                buscarConvidados();
-            }
-        }
-
-        async function confirmarConvidados() {
-            if (convidadosSelecionados.length === 0) return;
-            
-            mostrarConfirmacao(
-                `Confirmar ${convidadosSelecionados.length} convidado(s) selecionado(s)?`,
-                async () => {
-                    convidadosSelecionados.forEach(convidado => {
-                        const original = convidados.find(c => c.id === convidado.id);
-                        if (original) {
-                            original.status = 'Confirmado';
-                            original.timestamp = new Date().toISOString();
-                        }
-                    });
-                    
-                    await salvarDados();
-                    convidadosSelecionados = [];
-                    atualizarSelecionados();
-                    buscarConvidados();
-                    atualizarEstatisticas();
-                    
-                    mostrarAlerta('✅ Convidados confirmados com sucesso!', 'success');
-                }
-            );
-        }
-
-        async function cancelarSelecao() {
-            if (convidadosSelecionados.length === 0) return;
-            
-            mostrarConfirmacao(
-                `Cancelar seleção de ${convidadosSelecionados.length} convidado(s)? Eles serão marcados como CANCELADOS.`,
-                async () => {
-                    convidadosSelecionados.forEach(convidado => {
-                        const original = convidados.find(c => c.id === convidado.id);
-                        if (original) {
-                            original.status = 'Cancelado';
-                            original.timestamp = new Date().toISOString();
-                        }
-                    });
-                    
-                    await salvarDados();
-                    convidadosSelecionados = [];
-                    atualizarSelecionados();
-                    buscarConvidados();
-                    atualizarEstatisticas();
-                    
-                    mostrarAlerta('❌ Convidados cancelados com sucesso!', 'success');
-                }
-            );
-        }
-
-        // ==================== PÁGINA GERENCIAMENTO ====================
-        function abrirModalAdicionar() {
-            document.getElementById('modalAdicionar').style.display = 'block';
-            document.getElementById('novoRepresentante').focus();
-        }
-
-        async function adicionarConvidado(event) {
-            event.preventDefault();
-            
-            const representante = document.getElementById('novoRepresentante').value.trim();
-            const convidado = document.getElementById('novoConvidado').value.trim();
-
-            if (!representante || !convidado) {
-                mostrarAlerta('❌ Por favor, preencha todos os campos!', 'error');
-                return;
-            }
-
-            // Verificar duplicatas (case-insensitive)
-            const duplicata = convidados.find(c => 
-                c.representante.toLowerCase() === representante.toLowerCase() && 
-                c.convidado.toLowerCase() === convidado.toLowerCase()
-            );
-
-            if (duplicata) {
-                mostrarAlerta('⚠️ Este convidado já está cadastrado para este representante!', 'error');
-                return;
-            }
-
-            const novoConvidado = {
-                id: proximoId++,
-                representante,
-                convidado,
-                status: 'Pendente',
-                data: new Date().toLocaleDateString('pt-BR'),
-                timestamp: new Date().toISOString()
-            };
-
-            convidados.push(novoConvidado);
-            await salvarDados();
-            atualizarTodasTabelas();
-            atualizarEstatisticas();
-            fecharModal('modalAdicionar');
-            
-            // Limpar formulário
-            document.getElementById('novoRepresentante').value = '';
-            document.getElementById('novoConvidado').value = '';
-            
-            mostrarAlerta('✅ Convidado adicionado e salvo no banco!', 'success');
-        }
-
-        function atualizarTabelaGerenciamento() {
-            const tbody = document.querySelector('#tabela-gerenciamento tbody');
-            const termoBusca = document.getElementById('busca-gerenciamento').value.toLowerCase();
-            
-            let dadosFiltrados = convidados;
-            if (termoBusca.trim()) {
-                dadosFiltrados = convidados.filter(c => 
-                    c.representante.toLowerCase().includes(termoBusca) ||
-                    c.convidado.toLowerCase().includes(termoBusca) ||
-                    c.status.toLowerCase().includes(termoBusca) ||
-                    c.id.toString().includes(termoBusca)
-                );
-            }
-
-            tbody.innerHTML = '';
-
-            if (dadosFiltrados.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; color: #6c757d; padding: 40px;">📭 Nenhum convidado encontrado</td></tr>';
-                return;
-            }
-
-            dadosFiltrados.forEach(convidado => {
-                const tr = document.createElement('tr');
-                tr.innerHTML = `
-                    <td style="font-weight: bold; color: #007bff;">${convidado.id}</td>
-                    <td>${escapeHtml(convidado.representante)}</td>
-                    <td>${escapeHtml(convidado.convidado)}</td>
-                    <td>
-                        <span class="status-badge status-${convidado.status.toLowerCase()}">
-                            ${getStatusIcon(convidado.status)} ${convidado.status}
-                        </span>
-                    </td>
-                    <td>${convidado.data}</td>
-                    <td>
-                        <div class="action-buttons">
-                            <button onclick="alterarStatus(${convidado.id})" title="Alterar Status">
-                                ${getNextStatusIcon(convidado.status)}
-                            </button>
-                            <button onclick="editarConvidado(${convidado.id})" title="Editar">✏️</button>
-                            <button onclick="removerConvidado(${convidado.id})" class="danger" title="Remover">🗑️</button>
-                        </div>
-                    </td>
-                `;
-                tbody.appendChild(tr);
-            });
-        }
-
-        function getNextStatusIcon(currentStatus) {
-            switch(currentStatus.toLowerCase()) {
-                case 'pendente': return '✅';
-                case 'confirmado': return '❌';
-                case 'cancelado': return '⏳';
-                default: return '✅';
-            }
-        }
-
-        function filtrarTabelaGerenciamento() {
-            atualizarTabelaGerenciamento();
-        }
-
-        async function alterarStatus(id) {
-            const convidado = convidados.find(c => c.id === id);
-            if (convidado) {
-                // Ciclo: Pendente -> Confirmado -> Cancelado -> Pendente
-                switch(convidado.status) {
-                    case 'Pendente':
-                        convidado.status = 'Confirmado';
-                        break;
-                    case 'Confirmado':
-                        convidado.status = 'Cancelado';
-                        break;
-                    case 'Cancelado':
-                        convidado.status = 'Pendente';
-                        break;
-                    default:
-                        convidado.status = 'Confirmado';
-                }
-                
-                convidado.timestamp = new Date().toISOString();
-                
-                await salvarDados();
-                atualizarTodasTabelas();
-                atualizarEstatisticas();
-                mostrarAlerta(`✅ Status alterado para "${convidado.status}" e salvo!`, 'success');
-            }
-        }
-
-        async function editarConvidado(id) {
-            const convidado = convidados.find(c => c.id === id);
-            if (!convidado) return;
-
-            const novoRepresentante = prompt('✏️ Novo representante:', convidado.representante);
-            if (novoRepresentante === null) return;
-
-            const novoConvidadoNome = prompt('✏️ Novo nome do convidado:', convidado.convidado);
-            if (novoConvidadoNome === null) return;
-
-            if (!novoRepresentante.trim() || !novoConvidadoNome.trim()) {
-                mostrarAlerta('❌ Campos não podem estar vazios!', 'error');
-                return;
-            }
-
-            convidado.representante = novoRepresentante.trim();
-            convidado.convidado = novoConvidadoNome.trim();
-            convidado.data = new Date().toLocaleDateString('pt-BR');
-            convidado.timestamp = new Date().toISOString();
-            
-            await salvarDados();
-            atualizarTodasTabelas();
-            mostrarAlerta('✅ Convidado editado e salvo no banco!', 'success');
-        }
-
-        async function removerConvidado(id) {
-            const convidado = convidados.find(c => c.id === id);
-            if (!convidado) return;
-
-            mostrarConfirmacao(
-                `Tem certeza que deseja remover "${convidado.convidado}" (${convidado.representante})?`,
-                async () => {
-                    convidados = convidados.filter(c => c.id !== id);
-                    await salvarDados();
-                    atualizarTodasTabelas();
-                    atualizarEstatisticas();
-                    mostrarAlerta('✅ Convidado removido e salvo no banco!', 'success');
-                }
-            );
-        }
-
-        // ==================== PÁGINA RELATÓRIO ====================
-        function atualizarRelatorio() {
-            atualizarEstatisticasRepresentantes();
-            atualizarFiltroRepresentantes();
-            filtrarRelatorio();
-        }
-
-        function atualizarEstatisticasRepresentantes() {
-            const container = document.getElementById('stats-representantes');
-            const representantes = [...new Set(convidados.map(c => c.representante))];
-            
-            let html = '';
-            representantes.forEach(rep => {
-                const convidadosRep = convidados.filter(c => c.representante === rep);
-                const confirmados = convidadosRep.filter(c => c.status === 'Confirmado').length;
-                const pendentes = convidadosRep.filter(c => c.status === 'Pendente').length;
-                const cancelados = convidadosRep.filter(c => c.status === 'Cancelado').length;
-                const total = convidadosRep.length;
-                const percentual = total > 0 ? Math.round((confirmados / total) * 100) : 0;
-                
-                html += `
-                    <div class="stat-representante">
-                        <h4 style="margin: 0 0 10px 0; color: #007bff;">${escapeHtml(rep)}</h4>
-                        <p style="margin: 5px 0;">📊 Total: <strong>${total}</strong></p>
-                        <p style="margin: 5px 0; color: #28a745;">✅ Confirmados: <strong>${confirmados}</strong></p>
-                        <p style="margin: 5px 0; color: #ffc107;">⏳ Pendentes: <strong>${pendentes}</strong></p>
-                        <p style="margin: 5px 0; color: #dc3545;">❌ Cancelados: <strong>${cancelados}</strong></p>
-                        <p style="margin: 5px 0; color: #007bff;">📈 Taxa: <strong>${percentual}%</strong></p>
-                    </div>
-                `;
-            });
-            
-            container.innerHTML = html;
-        }
-
-        function atualizarFiltroRepresentantes() {
-            const select = document.getElementById('filtro-representante');
-            const representantes = [...new Set(convidados.map(c => c.representante))];
-            
-            let html = '<option value="">Todos os Representantes</option>';
-            representantes.forEach(rep => {
-                html += `<option value="${escapeHtml(rep)}">${escapeHtml(rep)}</option>`;
-            });
-            
-            select.innerHTML = html;
-        }
-
-        function filtrarRelatorio() {
-            const termoBusca = document.getElementById('busca-relatorio').value.toLowerCase();
-            const filtroRep = document.getElementById('filtro-representante').value;
-            const filtroStatus = document.getElementById('filtro-status').value;
-            const tbody = document.querySelector('#tabela-relatorio tbody');
-            
-            let dadosFiltrados = convidados;
-            
-            if (termoBusca.trim()) {
-                dadosFiltrados = dadosFiltrados.filter(c => 
-                    c.representante.toLowerCase().includes(termoBusca) ||
-                    c.convidado.toLowerCase().includes(termoBusca)
-                );
-            }
-            
-            if (filtroRep) {
-                dadosFiltrados = dadosFiltrados.filter(c => c.representante === filtroRep);
-            }
-            
-            if (filtroStatus) {
-                dadosFiltrados = dadosFiltrados.filter(c => c.status === filtroStatus);
-            }
-            
-            tbody.innerHTML = '';
-            
-            if (dadosFiltrados.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="4" style="text-align: center; color: #6c757d; padding: 40px;">📭 Nenhum registro encontrado</td></tr>';
-                return;
-            }
-            
-            dadosFiltrados.forEach(convidado => {
-                const tr = document.createElement('tr');
-                tr.innerHTML = `
-                    <td>${escapeHtml(convidado.representante)}</td>
-                    <td>${escapeHtml(convidado.convidado)}</td>
-                    <td>
-                        <span class="status-badge status-${convidado.status.toLowerCase()}">
-                            ${getStatusIcon(convidado.status)} ${convidado.status}
-                        </span>
-                    </td>
-                    <td>${convidado.data}</td>
-                `;
-                tbody.appendChild(tr);
-            });
-        }
-
-        // ==================== FUNÇÕES AUXILIARES ====================
-        function atualizarTodasTabelas() {
-            if (paginaAtual === 'lista') {
-                buscarConvidados();
-            } else if (paginaAtual === 'gerenciamento') {
-                atualizarTabelaGerenciamento();
-            } else if (paginaAtual === 'relatorio') {
-                atualizarRelatorio();
-            }
-        }
-
-        function atualizarEstatisticas() {
-            const total = convidados.length;
-            const confirmados = convidados.filter(c => c.status === 'Confirmado').length;
-            const pendentes = convidados.filter(c => c.status === 'Pendente').length;
-            const cancelados = convidados.filter(c => c.status === 'Cancelado').length;
-            const taxa = total > 0 ? Math.round((confirmados / total) * 100) : 0;
-
-            const totalEl = document.getElementById('total');
-            const confirmadosEl = document.getElementById('confirmados');
-            const pendentesEl = document.getElementById('pendentes');
-            const canceladosEl = document.getElementById('cancelados');
-            const taxaEl = document.getElementById('taxa');
-
-            if (totalEl) totalEl.textContent = total;
-            if (confirmadosEl) confirmadosEl.textContent = confirmados;
-            if (pendentesEl) pendentesEl.textContent = pendentes;
-            if (canceladosEl) canceladosEl.textContent = cancelados;
-            if (taxaEl) taxaEl.textContent = taxa + '%';
-        }
-
-        // ==================== IMPORTAÇÃO E EXPORTAÇÃO ====================
-        async function importarArquivo() {
-            const arquivo = document.getElementById('arquivo').files[0];
-            if (!arquivo) return;
-
-            const reader = new FileReader();
-            reader.onload = async function(e) {
-                try {
-                    const conteudo = e.target.result;
-                    const linhas = conteudo.split('\n').filter(linha => linha.trim());
-                    
-                    let adicionados = 0;
-                    let erros = 0;
-                    let duplicatas = 0;
-
-                    linhas.forEach((linha, index) => {
-                        // Ignorar cabeçalho se existir
-                        if (index === 0 && linha.toLowerCase().includes('representante')) {
-                            return;
-                        }
-
-                        const partes = linha.split(',').map(p => p.trim().replace(/"/g, ''));
-                        
-                        if (partes.length >= 2 && partes[0] && partes[1]) {
-                            const representante = partes[0];
-                            const convidado = partes[1];
-                            
-                            // Verificar duplicata
-                            const duplicata = convidados.find(c => 
-                                c.representante.toLowerCase() === representante.toLowerCase() && 
-                                c.convidado.toLowerCase() === convidado.toLowerCase()
-                            );
-
-                            if (!duplicata) {
-                                convidados.push({
-                                    id: proximoId++,
-                                    representante,
-                                    convidado,
-                                    status: 'Pendente',
-                                    data: new Date().toLocaleDateString('pt-BR'),
-                                    timestamp: new Date().toISOString()
-                                });
-                                adicionados++;
-                            } else {
-                                duplicatas++;
-                            }
-                        } else if (linha.trim()) {
-                            erros++;
-                        }
-                    });
-
-                    await salvarDados();
-                    atualizarTodasTabelas();
-                    atualizarEstatisticas();
-                    
-                    let mensagem = `📥 Importação concluída e salva no banco!<br>✅ ${adicionados} convidados adicionados`;
-                    if (duplicatas > 0) mensagem += `<br>⚠️ ${duplicatas} duplicatas ignoradas`;
-                    if (erros > 0) mensagem += `<br>❌ ${erros} linhas com erro`;
-                    
-                    mostrarAlerta(mensagem, adicionados > 0 ? 'success' : 'error');
-                    
-                    // Limpar input
-                    document.getElementById('arquivo').value = '';
-                    
-                } catch (error) {
-                    mostrarAlerta('❌ Erro ao processar arquivo!', 'error');
-                }
-            };
-            reader.readAsText(arquivo);
-        }
-
-        function exportarCSV() {
-            if (convidados.length === 0) {
-                mostrarAlerta('⚠️ Não há dados para exportar!', 'error');
-                return;
-            }
-
-            let csv = 'ID,Representante,Convidado,Status,Data\n';
-            convidados.forEach(c => {
-                csv += `${c.id},"${c.representante}","${c.convidado}","${c.status}","${c.data}"\n`;
-            });
-
-            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-            const link = document.createElement('a');
-            const url = URL.createObjectURL(blob);
-            link.href = url;
-            link.download = `convidados_${new Date().toISOString().split('T')[0]}.csv`;
-            link.click();
-            URL.revokeObjectURL(url);
-            
-            mostrarAlerta('📤 Arquivo CSV exportado com sucesso!', 'success');
-        }
-
-        function exportarRelatorio() {
-            if (convidados.length === 0) {
-                mostrarAlerta('⚠️ Não há dados para gerar relatório!', 'error');
-                return;
-            }
-
-            const stats = {
-                total: convidados.length,
-                confirmados: convidados.filter(c => c.status === 'Confirmado').length,
-                pendentes: convidados.filter(c => c.status === 'Pendente').length,
-                cancelados: convidados.filter(c => c.status === 'Cancelado').length
-            };
-            stats.taxa = stats.total > 0 ? Math.round((stats.confirmados / stats.total) * 100) : 0;
-
-            const representantes = [...new Set(convidados.map(c => c.representante))];
-            let statsHtml = '';
-            representantes.forEach(rep => {
-                const convidadosRep = convidados.filter(c => c.representante === rep);
-                const confirmadosRep = convidadosRep.filter(c => c.status === 'Confirmado').length;
-                const pendentesRep = convidadosRep.filter(c => c.status === 'Pendente').length;
-                const canceladosRep = convidadosRep.filter(c => c.status === 'Cancelado').length;
-                const totalRep = convidadosRep.length;
-                const percentual = totalRep > 0 ? Math.round((confirmadosRep / totalRep) * 100) : 0;
-                
-                statsHtml += `
-                    <tr>
-                        <td style="padding: 12px; border: 1px solid #ddd;">${escapeHtml(rep)}</td>
-                        <td style="padding: 12px; border: 1px solid #ddd; text-align: center;">${totalRep}</td>
-                        <td style="padding: 12px; border: 1px solid #ddd; text-align: center; color: #28a745;">${confirmadosRep}</td>
-                        <td style="padding: 12px; border: 1px solid #ddd; text-align: center; color: #ffc107;">${pendentesRep}</td>
-                        <td style="padding: 12px; border: 1px solid #ddd; text-align: center; color: #dc3545;">${canceladosRep}</td>
-                        <td style="padding: 12px; border: 1px solid #ddd; text-align: center; font-weight: bold; color: #007bff;">${percentual}%</td>
-                    </tr>
-                `;
-            });
-
-            const htmlContent = `<!DOCTYPE html>
-<html lang="pt-BR">
-<head>
-    <meta charset="UTF-8">
-    <title>Relatório de Convidados</title>
-    <style>
-        body { font-family: Arial, sans-serif; margin: 20px; }
-        .header { text-align: center; margin-bottom: 30px; padding: 20px; background-color: #007bff; color: white; border-radius: 8px; }
-        .stats { display: flex; justify-content: space-around; margin: 20px 0; flex-wrap: wrap; }
-        .stat { background: #f8f9fa; padding: 20px; border-radius: 8px; text-align: center; border-left: 4px solid #007bff; margin: 10px; flex: 1; min-width: 150px; }
-        table { width: 100%; border-collapse: collapse; margin: 20px 0; }
-        th, td { border: 1px solid #ddd; padding: 12px; text-align: left; }
-        th { background-color: #007bff; color: white; }
-        tr:nth-child(even) { background-color: #f8f9fa; }
-    </style>
-</head>
-<body>
-    <div class="header">
-        <h1>📊 Relatório de Convidados</h1>
-        <p>Gerado em: ${new Date().toLocaleString('pt-BR')}</p>
-    </div>
-    
-    <div class="stats">
-        <div class="stat">
-            <h3>Total</h3>
-            <p style="font-size: 2em; font-weight: bold; color: #007bff;">${stats.total}</p>
-        </div>
-        <div class="stat">
-            <h3>Confirmados</h3>
-            <p style="font-size: 2em; font-weight: bold; color: #28a745;">${stats.confirmados}</p>
-        </div>
-        <div class="stat">
-            <h3>Pendentes</h3>
-            <p style="font-size: 2em; font-weight: bold; color: #ffc107;">${stats.pendentes}</p>
-        </div>
-        <div class="stat">
-            <h3>Cancelados</h3>
-            <p style="font-size: 2em; font-weight: bold; color: #dc3545;">${stats.cancelados}</p>
-        </div>
-        <div class="stat">
-            <h3>Taxa</h3>
-            <p style="font-size: 2em; font-weight: bold; color: #007bff;">${stats.taxa}%</p>
-        </div>
-    </div>
-    
-    <h2>📈 Estatísticas por Representante</h2>
-    <table>
-        <thead>
-            <tr>
-                <th>Representante</th>
-                <th>Total</th>
-                <th>Confirmados</th>
-                <th>Pendentes</th>
-                <th>Cancelados</th>
-                <th>Taxa</th>
-            </tr>
-        </thead>
-        <tbody>${statsHtml}</tbody>
-    </table>
-    
-    <h2>👥 Lista Completa</h2>
-    <table>
-        <thead>
-            <tr>
-                <th>ID</th>
-                <th>Representante</th>
-                <th>Convidado</th>
-                <th>Status</th>
-                <th>Data</th>
-            </tr>
-        </thead>
-        <tbody>
-            ${convidados.map(c => `
-                <tr>
-                    <td>${c.id}</td>
-                    <td>${escapeHtml(c.representante)}</td>
-                    <td>${escapeHtml(c.convidado)}</td>
-                    <td style="color: ${c.status === 'Confirmado' ? '#28a745' : c.status === 'Cancelado' ? '#dc3545' : '#ffc107'};">${c.status}</td>
-                    <td>${c.data}</td>
-                </tr>
-            `).join('')}
-        </tbody>
-    </table>
-</body>
-</html>`;
-
-            const blob = new Blob([htmlContent], { type: 'text/html' });
-            const link = document.createElement('a');
-            const url = URL.createObjectURL(blob);
-            link.href = url;
-            link.download = `relatorio_convidados_${new Date().toISOString().split('T')[0]}.html`;
-            link.click();
-            URL.revokeObjectURL(url);
-            
-            mostrarAlerta('📊 Relatório HTML exportado com sucesso!', 'success');
-        }
-
-        async function exportarBackup() {
-            try {
-                const dadosBanco = db.exportarBanco();
-                
-                const blob = new Blob([dadosBanco], { type: 'application/json' });
-                const link = document.createElement('a');
-                const url = URL.createObjectURL(blob);
-                link.href = url;
-                link.download = `backup_banco_convidados_${new Date().toISOString().split('T')[0]}.json`;
-                link.click();
-                URL.revokeObjectURL(url);
-                
-                mostrarAlerta('💾 Backup do banco criado com sucesso!', 'success');
-            } catch (error) {
-                mostrarAlerta('❌ Erro ao criar backup: ' + error.message, 'error');
-            }
-        }
-
-        async function importarBackup() {
-            const arquivo = document.getElementById('arquivoBackup').files[0];
-            if (!arquivo) return;
-
-            mostrarConfirmacao(
-                '⚠️ Restaurar backup irá substituir todo o banco de dados atual. Continuar?',
-                async () => {
-                    const reader = new FileReader();
-                    reader.onload = async function(e) {
-                        try {
-                            await db.importarBanco(e.target.result);
-                            await carregarDados();
-                            atualizarTodasTabelas();
-                            atualizarEstatisticas();
-                            
-                            mostrarAlerta('📂 Banco de dados restaurado com sucesso!', 'success');
-                        } catch (error) {
-                            mostrarAlerta('❌ ' + error.message, 'error');
-                        }
-                    };
-                    reader.readAsText(arquivo);
-                    document.getElementById('arquivoBackup').value = '';
-                }
-            );
-        }
-
-        async function sincronizarBanco() {
-            mostrarAlerta('🔄 Sincronizando banco de dados...', 'success');
-            
-            const resultado = await db.sincronizar();
-            
-            if (resultado.success) {
-                mostrarAlerta(`✅ ${resultado.message}<br>Última sincronização: ${resultado.timestamp.toLocaleString('pt-BR')}`, 'success');
-            } else {
-                mostrarAlerta(`❌ ${resultado.message}`, 'error');
-            }
-        }
-
-        // ==================== GERENCIAMENTO DE SENHA ====================
-        function abrirModalSenha() {
-            document.getElementById('modalSenha').style.display = 'block';
-            document.getElementById('senhaAtual').focus();
-        }
-
-        async function alterarSenha(event) {
-            event.preventDefault();
-            
-            const senhaAtualInput = document.getElementById('senhaAtual').value;
-            const novaSenha = document.getElementById('novaSenha').value;
-            const confirmarSenha = document.getElementById('confirmarSenha').value;
-
-            if (senhaAtualInput !== senhaAtual) {
-                mostrarAlerta('❌ Senha atual incorreta!', 'error');
-                return;
-            }
-
-            if (novaSenha !== confirmarSenha) {
-                mostrarAlerta('❌ As senhas não conferem!', 'error');
-                return;
-            }
-
-            if (novaSenha.length < 3) {
-                mostrarAlerta('❌ A nova senha deve ter pelo menos 3 caracteres!', 'error');
-                return;
-            }
-
-            senhaAtual = novaSenha;
-            await salvarDados();
-            fecharModal('modalSenha');
-            
-            // Limpar formulário
-            document.getElementById('senhaAtual').value = '';
-            document.getElementById('novaSenha').value = '';
-            document.getElementById('confirmarSenha').value = '';
-            
-            mostrarAlerta('🔒 Senha alterada e salva no banco com segurança!', 'success');
-        }
-
-        // ==================== FUNÇÕES UTILITÁRIAS ====================
-        function escapeHtml(texto) {
-            const div = document.createElement('div');
-            div.textContent = texto;
-            return div.innerHTML;
-        }
-
-        function mostrarAlerta(mensagem, tipo) {
-            const container = document.getElementById('alertContainer');
-            const alerta = document.createElement('div');
-            alerta.className = `alert alert-${tipo}`;
-            alerta.innerHTML = mensagem;
-            alerta.style.display = 'block';
-            
-            container.appendChild(alerta);
-            
-            setTimeout(() => {
-                alerta.remove();
-            }, 7000);
-        }
-
-        function mostrarConfirmacao(mensagem, callback) {
-            document.getElementById('mensagemConfirmacao').textContent = mensagem;
-            document.getElementById('modalConfirmar').style.display = 'block';
-            
-            document.getElementById('btnConfirmar').onclick = function() {
-                fecharModal('modalConfirmar');
-                callback();
-            };
-        }
-
-        function fecharModal(modalId) {
-            document.getElementById(modalId).style.display = 'none';
-        }
-
-        // ==================== EVENT LISTENERS ====================
-        // Fechar modais clicando fora
-        window.onclick = function(event) {
-            const modals = document.querySelectorAll('.modal');
-            modals.forEach(modal => {
-                if (event.target === modal) {
-                    modal.style.display = 'none';
-                }
-            });
-        };
-
-        // Atalhos de teclado
-        document.addEventListener('keydown', function(e) {
-            // Escape para fechar modais
-            if (e.key === 'Escape') {
-                const modals = document.querySelectorAll('.modal');
-                modals.forEach(modal => {
-                    if (modal.style.display === 'block') {
-                        modal.style.display = 'none';
-                    }
-                });
-            }
-            
-            // Ctrl+N para novo convidado
-            if ((e.ctrlKey || e.metaKey) && e.key === 'n') {
-                e.preventDefault();
-                if (paginaAtual === 'gerenciamento') {
-                    abrirModalAdicionar();
-                }
-            }
-            
-            // Ctrl+F para focar na busca
-            if ((e.ctrlKey || e.metaKey) && e.key === 'f') {
-                e.preventDefault();
-                if (paginaAtual === 'lista') {
-                    document.getElementById('busca-lista').focus();
-                } else if (paginaAtual === 'gerenciamento') {
-                    document.getElementById('busca-gerenciamento').focus();
-                } else if (paginaAtual === 'relatorio') {
-                    document.getElementById('busca-relatorio').focus();
-                }
-            }
-            
-            // Ctrl+S para salvar/sincronizar
-            if ((e.ctrlKey || e.metaKey) && e.key === 's') {
-                e.preventDefault();
-                sincronizarBanco();
-            }
-        });
-    </script>
-</body>
-</html>
+Text file: index.html
+Reading lines: 1-500 (file has 2640 lines)
+Latest content with line numbers:
+1	<!DOCTYPE html>
+2	<html lang="pt-BR">
+3	<head>
+4	    <meta charset="UTF-8">
+5	    <title>Gerenciador de Convidados</title>
+6	    <meta name="viewport" content="width=device-width, initial-scale=1">
+7	    <script src="https://cdn.tailwindcss.com"></script>
+8	    <style>
+9	        * {
+10	            box-sizing: border-box;
+11	        }
+12	        
+13	        body { 
+14	            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+15	            margin: 0;
+16	            padding: 0;
+17	            background-color: #f5f5f5;
+18	            line-height: 1.6;
+19	            min-height: 100vh;
+20	            overflow-x: hidden;
+21	        }
+22	        
+23	        /* Menu Lateral */
+24	        .sidebar {
+25	            position: fixed;
+26	            left: 0;
+27	            top: 0;
+28	            width: 300px;
+29	            height: 100vh;
+30	            background: linear-gradient(180deg, #1e40af 0%, #1e3a8a 100%);
+31	            box-shadow: 4px 0 20px rgba(0,0,0,0.15);
+32	            z-index: 1000;
+33	            overflow-y: auto;
+34	            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+35	            transform: translateX(0);
+36	        }
+37	        
+38	        .sidebar.collapsed {
+39	            transform: translateX(-100%);
+40	        }
+41	        
+42	        .sidebar-header {
+43	            padding: 30px 25px;
+44	            border-bottom: 1px solid rgba(255,255,255,0.15);
+45	            text-align: center;
+46	            background: rgba(0,0,0,0.1);
+47	        }
+48	        
+49	        .sidebar-title {
+50	            color: white;
+51	            font-size: 1.6rem;
+52	            font-weight: 700;
+53	            margin: 0;
+54	            text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+55	            letter-spacing: -0.02em;
+56	        }
+57	        
+58	        .sidebar-subtitle {
+59	            color: rgba(255,255,255,0.8);
+60	            font-size: 0.875rem;
+61	            margin-top: 8px;
+62	            font-weight: 400;
+63	        }
+64	        
+65	        .sidebar-nav {
+66	            padding: 25px 0;
+67	        }
+68	        
+69	        .nav-item {
+70	            display: flex;
+71	            align-items: center;
+72	            padding: 18px 25px;
+73	            color: rgba(255,255,255,0.9);
+74	            text-decoration: none;
+75	            cursor: pointer;
+76	            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+77	            border-left: 4px solid transparent;
+78	            font-weight: 500;
+79	            position: relative;
+80	            font-size: 0.95rem;
+81	        }
+82	        
+83	        .nav-item:hover {
+84	            background: rgba(255,255,255,0.12);
+85	            color: white;
+86	            border-left-color: rgba(255,255,255,0.4);
+87	            transform: translateX(4px);
+88	        }
+89	        
+90	        .nav-item.active {
+91	            background: rgba(255,255,255,0.2);
+92	            color: white;
+93	            border-left-color: #fbbf24;
+94	            font-weight: 600;
+95	            box-shadow: inset 0 0 20px rgba(255,255,255,0.1);
+96	        }
+97	        
+98	        .nav-item.protected::after {
+99	            content: '🔒';
+100	            position: absolute;
+101	            right: 20px;
+102	            top: 50%;
+103	            transform: translateY(-50%);
+104	            font-size: 14px;
+105	            opacity: 0.8;
+106	        }
+107	        
+108	        .nav-icon {
+109	            margin-right: 15px;
+110	            font-size: 1.2rem;
+111	            width: 24px;
+112	            text-align: center;
+113	        }
+114	        
+115	        .sidebar-footer {
+116	            position: absolute;
+117	            bottom: 0;
+118	            left: 0;
+119	            right: 0;
+120	            padding: 20px 25px;
+121	            border-top: 1px solid rgba(255,255,255,0.15);
+122	            text-align: center;
+123	            background: rgba(0,0,0,0.1);
+124	        }
+125	        
+126	        .sidebar-footer .db-status {
+127	            position: static;
+128	            display: inline-block;
+129	            background: rgba(255,255,255,0.15);
+130	            color: white;
+131	            border: 1px solid rgba(255,255,255,0.3);
+132	            font-size: 11px;
+133	            padding: 8px 12px;
+134	            border-radius: 6px;
+135	            font-weight: 500;
+136	        }
+137	        
+138	        /* Overlay para fechar menu em mobile */
+139	        .sidebar-overlay {
+140	            position: fixed;
+141	            top: 0;
+142	            left: 0;
+143	            width: 100%;
+144	            height: 100%;
+145	            background: rgba(0,0,0,0.5);
+146	            z-index: 999;
+147	            opacity: 0;
+148	            visibility: hidden;
+149	            transition: all 0.3s ease;
+150	        }
+151	        
+152	        .sidebar-overlay.show {
+153	            opacity: 1;
+154	            visibility: visible;
+155	        }
+156	        
+157	        /* Toggle do menu para mobile */
+158	        .menu-toggle {
+159	            display: none;
+160	            position: fixed;
+161	            top: 20px;
+162	            left: 20px;
+163	            z-index: 1001;
+164	            background: #1e40af;
+165	            color: white;
+166	            border: none;
+167	            padding: 14px;
+168	            border-radius: 12px;
+169	            font-size: 18px;
+170	            cursor: pointer;
+171	            box-shadow: 0 4px 15px rgba(30, 64, 175, 0.3);
+172	            transition: all 0.3s ease;
+173	        }
+174	        
+175	        .menu-toggle:hover {
+176	            background: #1e3a8a;
+177	            transform: scale(1.05);
+178	        }
+179	        
+180	        /* Ajuste do conteúdo principal */
+181	        .main-content {
+182	            margin-left: 300px;
+183	            min-height: 100vh;
+184	            transition: margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+185	            padding: 25px;
+186	        }
+187	        
+188	        .main-content.expanded {
+189	            margin-left: 0;
+190	        }
+191	        
+192	        .container {
+193	            max-width: 1400px;
+194	            margin: 0 auto;
+195	            background: white;
+196	            padding: 35px;
+197	            border-radius: 20px;
+198	            box-shadow: 0 8px 30px rgba(0,0,0,0.12);
+199	            min-height: calc(100vh - 50px);
+200	            backdrop-filter: blur(10px);
+201	        }
+202	        
+203	        h1 { 
+204	            text-align: center; 
+205	            color: #1e293b;
+206	            margin-bottom: 35px;
+207	            font-size: 2.5rem;
+208	            font-weight: 700;
+209	            letter-spacing: -0.02em;
+210	        }
+211	        
+212	        h2 {
+213	            color: #1e40af;
+214	            border-bottom: 3px solid #1e40af;
+215	            padding-bottom: 12px;
+216	            margin-bottom: 30px;
+217	            font-weight: 600;
+218	            font-size: 1.8rem;
+219	        }
+220	        
+221	        .stats { 
+222	            display: grid;
+223	            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+224	            gap: 20px;
+225	            margin: 25px 0;
+226	        }
+227	        
+228	        .stats div { 
+229	            font-size: 16px; 
+230	            padding: 20px;
+231	            background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+232	            border-radius: 12px;
+233	            border-left: 5px solid #1e40af;
+234	            text-align: center;
+235	            transition: transform 0.2s ease;
+236	        }
+237	        
+238	        .stats div:hover {
+239	            transform: translateY(-2px);
+240	        }
+241	        
+242	        .stats div span {
+243	            font-weight: 700;
+244	            color: #1e40af;
+245	            display: block;
+246	            font-size: 2rem;
+247	            margin-top: 8px;
+248	            line-height: 1;
+249	        }
+250	        
+251	        .actions { 
+252	            margin: 25px 0; 
+253	            display: flex; 
+254	            gap: 12px; 
+255	            flex-wrap: wrap;
+256	            align-items: center;
+257	            justify-content: center;
+258	        }
+259	        
+260	        .search-section {
+261	            margin: 25px 0;
+262	            padding: 20px;
+263	            background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
+264	            border-radius: 12px;
+265	            border-left: 5px solid #1e40af;
+266	        }
+267	        
+268	        .search-section h3 {
+269	            margin: 0 0 15px 0;
+270	            color: #1e3a8a;
+271	            font-weight: 600;
+272	        }
+273	        
+274	        input[type="text"], input[type="file"], input[type="password"], textarea, select { 
+275	            padding: 14px 16px; 
+276	            border: 2px solid #e2e8f0;
+277	            border-radius: 10px;
+278	            font-size: 15px;
+279	            transition: all 0.3s ease;
+280	            background: white;
+281	            width: 100%;
+282	        }
+283	        
+284	        input[type="text"]:focus, input[type="password"]:focus, textarea:focus, select:focus {
+285	            border-color: #1e40af;
+286	            outline: none;
+287	            box-shadow: 0 0 0 3px rgba(30, 64, 175, 0.1);
+288	            transform: translateY(-1px);
+289	        }
+290	        
+291	        button { 
+292	            padding: 14px 20px; 
+293	            cursor: pointer;
+294	            border: none;
+295	            border-radius: 10px;
+296	            background: #1e40af;
+297	            color: white;
+298	            font-weight: 600;
+299	            transition: all 0.3s ease;
+300	            font-size: 14px;
+301	            box-shadow: 0 2px 8px rgba(30, 64, 175, 0.2);
+302	        }
+303	        
+304	        button:hover {
+305	            background: #1e3a8a;
+306	            transform: translateY(-2px);
+307	            box-shadow: 0 4px 12px rgba(30, 64, 175, 0.3);
+308	        }
+309	        
+310	        button:active {
+311	            transform: translateY(0);
+312	        }
+313	        
+314	        button:disabled {
+315	            background: #94a3b8;
+316	            cursor: not-allowed;
+317	            transform: none;
+318	            box-shadow: none;
+319	        }
+320	        
+321	        button.danger {
+322	            background: #dc2626;
+323	        }
+324	        
+325	        button.danger:hover {
+326	            background: #b91c1c;
+327	        }
+328	        
+329	        button.success {
+330	            background: #16a34a;
+331	        }
+332	        
+333	        button.success:hover {
+334	            background: #15803d;
+335	        }
+336	        
+337	        button.warning {
+338	            background: #f59e0b;
+339	            color: #92400e;
+340	        }
+341	        
+342	        button.warning:hover {
+343	            background: #d97706;
+344	            color: white;
+345	        }
+346	        
+347	        /* Páginas */
+348	        .page-content {
+349	            display: none;
+350	            animation: fadeIn 0.3s ease;
+351	        }
+352	        
+353	        .page-content.active {
+354	            display: block;
+355	        }
+356	        
+357	        @keyframes fadeIn {
+358	(Content truncated due to size limit. Use page ranges or line ranges to read remaining content)
